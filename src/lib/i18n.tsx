@@ -247,9 +247,7 @@ const STRINGS: Dict = {
   "Math · projected": { ru: "Матем. · прогноз", uz: "Matem. · prognoz" },
   mastered: { ru: "освоено", uz: "o'zlashtirilgan" },
   best: { ru: "рекорд", uz: "rekord" },
-  "Recent mocks": { ru: "Недавние пробные", uz: "So'nggi sinovlar" },
   "Find an opponent in 30s": { ru: "Соперник за 30с", uz: "30s da raqib" },
-  "Match in Math": { ru: "Битва по матем.", uz: "Matem. jang" },
   "Friends online": { ru: "Друзья онлайн", uz: "Onlayn do'stlar" },
   "Tashkent · Math": { ru: "Ташкент · Матем.", uz: "Toshkent · Matem." },
 
