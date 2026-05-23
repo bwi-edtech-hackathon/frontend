@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { palette as pal } from "@/lib/palette";
+import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Btn, Card, Logo, Pill, Progress, Ring } from "@/components/ui/Primitives";
 import { LangSwitcher } from "@/components/app/LangSwitcher";
@@ -15,6 +16,7 @@ import { clearExam } from "@/lib/examState";
 type LocationState = { sessionId?: string; result?: ExamSummary };
 
 export default function ExamResult() {
+  const t = useT();
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state ?? {}) as LocationState;
@@ -73,7 +75,7 @@ export default function ExamResult() {
           fontSize: 14,
         }}
       >
-        Loading your report…
+        {t("Loading your report…")}
       </div>
     );
   }
@@ -96,7 +98,7 @@ export default function ExamResult() {
         <div style={{ width: 1, height: 24, background: pal.line }} />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, color: pal.muted, marginBottom: 2 }}>
-            Mock exam · Mathematics
+            {t("Mock exam · Mathematics")}
           </div>
           <h1
             style={{
@@ -106,7 +108,7 @@ export default function ExamResult() {
               letterSpacing: "-0.025em",
             }}
           >
-            Your diagnostic report
+            {t("Your diagnostic report")}
           </h1>
         </div>
         <LangSwitcher />
@@ -117,7 +119,7 @@ export default function ExamResult() {
           onClick={() => navigate("/app")}
           icon={<Icon name="home" size={14} />}
         >
-          Back to dashboard
+          {t("Back to dashboard")}
         </Btn>
       </div>
 
@@ -178,7 +180,7 @@ export default function ExamResult() {
               }
               sub={
                 <span style={{ color: "rgba(255,255,255,0.7)" }}>
-                  Rasch / 75
+                  {t("Rasch / 75")}
                 </span>
               }
             />
@@ -188,7 +190,7 @@ export default function ExamResult() {
                 tone={passed ? "accent" : "bad"}
                 style={{ marginBottom: 12 }}
               >
-                {passed ? "Certificate-ready" : "Below pass threshold"}
+                {passed ? t("Certificate-ready") : t("Below pass threshold")}
               </Pill>
               <div
                 style={{
@@ -199,7 +201,7 @@ export default function ExamResult() {
                   marginBottom: 8,
                 }}
               >
-                Grade {result.grade}
+                {t("Grade")} {result.grade}
               </div>
               <div
                 style={{
@@ -209,9 +211,11 @@ export default function ExamResult() {
                   lineHeight: 1.55,
                 }}
               >
-                You answered {result.totalCorrect}/{result.totalQuestions} correctly.
-                Your weak topics are ranked below by impact on your final score —
-                fix the top three and your projected grade jumps a tier.
+                {t(
+                  "You answered {correct}/{total} correctly. Your weak topics are ranked below by impact on your final score — fix the top three and your projected grade jumps a tier.",
+                )
+                  .replace("{correct}", String(result.totalCorrect))
+                  .replace("{total}", String(result.totalQuestions))}
               </div>
               <div
                 style={{
@@ -222,13 +226,13 @@ export default function ExamResult() {
                 }}
               >
                 <SectionStat
-                  label="Section A · closed"
+                  label={t("Section A · closed")}
                   correct={result.sectionA.correct}
                   total={result.sectionA.total}
                   ball={result.sectionA.ball}
                 />
                 <SectionStat
-                  label="Section B · open"
+                  label={t("Section B · open")}
                   correct={result.sectionB.correct}
                   total={result.sectionB.total}
                   ball={result.sectionB.ball}
@@ -251,7 +255,7 @@ export default function ExamResult() {
                 icon={<Icon name="chat" size={16} />}
                 onClick={onAnalyzeAI}
               >
-                {busy === "ai" ? "Starting…" : "Analyze with AI Coach"}
+                {busy === "ai" ? t("Starting…") : t("Analyze with AI Coach")}
               </Btn>
               <Btn
                 pal={pal}
@@ -263,7 +267,7 @@ export default function ExamResult() {
                 icon={<Icon name="map" size={16} />}
                 onClick={onRoadmap}
               >
-                {busy === "roadmap" ? "Updating…" : "View updated roadmap"}
+                {busy === "roadmap" ? t("Updating…") : t("View updated roadmap")}
               </Btn>
             </div>
           </div>
@@ -294,14 +298,14 @@ export default function ExamResult() {
                     letterSpacing: "-0.015em",
                   }}
                 >
-                  Weakest topics
+                  {t("Weakest topics")}
                 </div>
                 <div style={{ fontSize: 12, color: pal.muted, marginTop: 2 }}>
-                  Ranked by impact on your projected final score
+                  {t("Ranked by impact on your projected final score")}
                 </div>
               </div>
               <Pill pal={pal} tone="primarySoft">
-                Top {result.weakTopics.length}
+                {t("Top")} {result.weakTopics.length}
               </Pill>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -348,7 +352,7 @@ export default function ExamResult() {
                       textAlign: "right",
                     }}
                   >
-                    +{w.impact.toFixed(1)} ball
+                    +{w.impact.toFixed(1)} {t("ball")}
                   </span>
                   <Icon name="chev-right" size={16} color={pal.muted} />
                 </div>
@@ -358,7 +362,7 @@ export default function ExamResult() {
 
           <Card pal={pal} pad={22}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
-              You're solid on
+              {t("You're solid on")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {result.strongTopics.map((s) => (
@@ -409,8 +413,10 @@ export default function ExamResult() {
                 lineHeight: 1.5,
               }}
             >
-              <strong>Tip:</strong> Don't drill these — diminishing returns.
-              Focus minutes on the weak list to climb tiers faster.
+              <strong>{t("Tip:")}</strong>{" "}
+              {t(
+                "Don't drill these — diminishing returns. Focus minutes on the weak list to climb tiers faster.",
+              )}
             </div>
           </Card>
         </div>
@@ -428,10 +434,13 @@ export default function ExamResult() {
           >
             <div>
               <div style={{ fontSize: 15, fontWeight: 700 }}>
-                Question breakdown
+                {t("Question breakdown")}
               </div>
               <div style={{ fontSize: 12, color: pal.muted, marginTop: 2 }}>
-                First {result.breakdown.length} questions · tap "Explain" to ask the AI Coach
+                {t('First {n} questions · tap "Explain" to ask the AI Coach').replace(
+                  "{n}",
+                  String(result.breakdown.length),
+                )}
               </div>
             </div>
             <Btn
@@ -440,7 +449,7 @@ export default function ExamResult() {
               size="sm"
               iconAfter={<Icon name="arrow-right" size={12} />}
             >
-              View all
+              {t("View all")}
             </Btn>
           </div>
           <div
@@ -457,11 +466,11 @@ export default function ExamResult() {
             }}
           >
             <span>#</span>
-            <span>Topic</span>
-            <span>Yours</span>
-            <span>Correct</span>
-            <span>Time</span>
-            <span style={{ textAlign: "right" }}>Action</span>
+            <span>{t("Topic")}</span>
+            <span>{t("Yours")}</span>
+            <span>{t("Correct")}</span>
+            <span>{t("Time")}</span>
+            <span style={{ textAlign: "right" }}>{t("Action")}</span>
           </div>
           {result.breakdown.map((b, i, arr) => (
             <div
@@ -535,7 +544,7 @@ export default function ExamResult() {
                       fontFamily: "inherit",
                     }}
                   >
-                    Explain
+                    {t("Explain")}
                   </button>
                 ) : (
                   <span style={{ fontSize: 11, color: pal.muted }}>—</span>
@@ -564,7 +573,7 @@ export default function ExamResult() {
                 letterSpacing: "-0.015em",
               }}
             >
-              Talk through wrong answers
+              {t("Talk through wrong answers")}
             </div>
             <div
               style={{
@@ -574,8 +583,9 @@ export default function ExamResult() {
                 lineHeight: 1.5,
               }}
             >
-              AI Coach uses the Socratic method — no lectures, just questions
-              that lead you to the answer.
+              {t(
+                "AI Coach uses the Socratic method — no lectures, just questions that lead you to the answer.",
+              )}
             </div>
             <Btn
               pal={pal}
@@ -586,7 +596,7 @@ export default function ExamResult() {
               onClick={onAnalyzeAI}
               iconAfter={<Icon name="arrow-right" size={14} />}
             >
-              Start session
+              {t("Start session")}
             </Btn>
           </Card>
           <Card pal={pal} pad={20}>
@@ -599,7 +609,7 @@ export default function ExamResult() {
                 letterSpacing: "-0.015em",
               }}
             >
-              Regenerate roadmap
+              {t("Regenerate roadmap")}
             </div>
             <div
               style={{
@@ -609,8 +619,9 @@ export default function ExamResult() {
                 lineHeight: 1.5,
               }}
             >
-              We'll rebuild your study path around the weak topics, pacing
-              checkpoints up to your exam date.
+              {t(
+                "We'll rebuild your study path around the weak topics, pacing checkpoints up to your exam date.",
+              )}
             </div>
             <Btn
               pal={pal}
@@ -621,7 +632,7 @@ export default function ExamResult() {
               onClick={onRoadmap}
               iconAfter={<Icon name="arrow-right" size={14} />}
             >
-              Update plan
+              {t("Update plan")}
             </Btn>
           </Card>
           <Card pal={pal} pad={20}>
@@ -634,7 +645,7 @@ export default function ExamResult() {
                 letterSpacing: "-0.015em",
               }}
             >
-              Drill the topics in battles
+              {t("Drill the topics in battles")}
             </div>
             <div
               style={{
@@ -644,8 +655,9 @@ export default function ExamResult() {
                 lineHeight: 1.5,
               }}
             >
-              5-minute ranked duels filtered to your weakest topics — the
-              cheapest exposure per minute.
+              {t(
+                "5-minute ranked duels filtered to your weakest topics — the cheapest exposure per minute.",
+              )}
             </div>
             <Btn
               pal={pal}
@@ -656,7 +668,7 @@ export default function ExamResult() {
               onClick={() => navigate("/app/battle")}
               iconAfter={<Icon name="arrow-right" size={14} />}
             >
-              Open battle lobby
+              {t("Open battle lobby")}
             </Btn>
           </Card>
         </div>

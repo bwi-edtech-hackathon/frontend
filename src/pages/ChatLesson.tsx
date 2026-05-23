@@ -257,12 +257,12 @@ export default function ChatLesson() {
                     lineHeight: 1.55,
                   }}
                 >
-                  I see you struggled with this on your checkpoint:
+                  {t("I see you struggled with this on your checkpoint:")}
                   <MathPill pal={pal} block>
                     x² − 5x + 6 = 0
                   </MathPill>
-                  Before we solve it, can you tell me what <em>type</em> of
-                  equation this is?
+                  {t("Before we solve it, can you tell me what")}{" "}
+                  <em>{t("type")}</em> {t("of equation this is?")}
                 </div>
               </div>
             </div>
@@ -314,12 +314,13 @@ export default function ChatLesson() {
                     lineHeight: 1.55,
                   }}
                 >
-                  Right. The general form is
+                  {t("Right. The general form is")}
                   <MathPill pal={pal} block>
                     ax² + bx + c = 0
                   </MathPill>
-                  In your equation, what are <MathPill pal={pal}>a</MathPill>,{" "}
-                  <MathPill pal={pal}>b</MathPill>, and{" "}
+                  {t("In your equation, what are")}{" "}
+                  <MathPill pal={pal}>a</MathPill>,{" "}
+                  <MathPill pal={pal}>b</MathPill> {t("and")}{" "}
                   <MathPill pal={pal}>c</MathPill>?
                 </div>
               </div>
@@ -522,7 +523,7 @@ export default function ChatLesson() {
             marginBottom: 12,
           }}
         >
-          Session progress
+          {t("Session progress")}
         </div>
         <div
           style={{
@@ -533,11 +534,11 @@ export default function ChatLesson() {
           }}
         >
           {[
-            { l: "Identified equation type", done: true, active: false },
-            { l: "Recognized coefficients", done: true, active: false },
-            { l: "Compute discriminant", done: false, active: true },
-            { l: "Apply quadratic formula", done: false, active: false },
-            { l: "Verify with practice", done: false, active: false },
+            { l: t("Identified equation type"), done: true, active: false },
+            { l: t("Recognized coefficients"), done: true, active: false },
+            { l: t("Compute discriminant"), done: false, active: true },
+            { l: t("Apply quadratic formula"), done: false, active: false },
+            { l: t("Verify with practice"), done: false, active: false },
           ].map((s, i) => (
             <div
               key={i}
@@ -597,8 +598,8 @@ export default function ChatLesson() {
             lineHeight: 1.45,
           }}
         >
-          <strong>Tip:</strong> Drop an image of your handwritten work — the
-          coach will read it.
+          <strong>{t("Tip:")}</strong>{" "}
+          {t("Drop an image of your handwritten work — the coach will read it.")}
         </div>
         <div style={{ height: 20 }} />
         <Pill pal={pal} tone="outline">

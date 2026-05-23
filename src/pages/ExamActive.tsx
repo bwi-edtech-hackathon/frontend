@@ -73,8 +73,8 @@ export default function ExamActive() {
       toast.warning(`${minutesRemaining} ${t("minutes remaining")}`, {
         description:
           minutesRemaining <= 5
-            ? "Wrap up. The exam will submit automatically."
-            : "Proctor warning.",
+            ? t("Wrap up. The exam will submit automatically.")
+            : t("Proctor warning."),
       });
     },
     [t],
@@ -95,18 +95,18 @@ export default function ExamActive() {
         });
       } catch {
         setSubmitting(false);
-        toast.error("Could not submit exam. Try again.");
+        toast.error(t("Could not submit exam. Try again."));
       }
     },
-    [exam, navigate, persist, session, submitting],
+    [exam, navigate, persist, session, submitting, t],
   );
 
   const onExpire = useCallback(() => {
     if (autoSubmitFired.current) return;
     autoSubmitFired.current = true;
-    toast.error("Time's up — submitting your answers.");
+    toast.error(t("Time's up — submitting your answers."));
     void handleSubmit(true);
-  }, [handleSubmit]);
+  }, [handleSubmit, t]);
 
   const timer = useExamTimer({
     startedAt: exam?.startedAt ?? Date.now(),
@@ -160,7 +160,7 @@ export default function ExamActive() {
   }, [exam]);
 
   const exit = () => {
-    if (!confirm("Exit and discard this attempt? Your answers will be lost.")) return;
+    if (!confirm(t("Exit and discard this attempt? Your answers will be lost."))) return;
     clearExam();
     navigate("/app/exam");
   };
@@ -191,7 +191,7 @@ export default function ExamActive() {
           fontSize: 14,
         }}
       >
-        Loading exam…
+        {t("Loading exam…")}
       </div>
     );
   }
@@ -243,7 +243,7 @@ export default function ExamActive() {
               letterSpacing: "-0.015em",
             }}
           >
-            {t("Mathematics")} · BMBA format
+            {t("Mathematics")} · {t("BMBA format")}
           </div>
         </div>
 
@@ -323,7 +323,7 @@ export default function ExamActive() {
           size="md"
           icon={<Icon name="flag" size={14} />}
           onClick={() => {
-            if (confirm(`Submit ${counts.answered}/${TOTAL_Q} answered?`)) {
+            if (confirm(`${t("Submit exam")}: ${counts.answered}/${TOTAL_Q} ${t("Answered")}?`)) {
               void handleSubmit(false);
             }
           }}
@@ -344,7 +344,7 @@ export default function ExamActive() {
             letterSpacing: "-0.01em",
           }}
         >
-          ⚠ Less than 5 minutes remaining — your exam will auto-submit when the timer hits zero.
+          {t("⚠ Less than 5 minutes remaining — your exam will auto-submit when the timer hits zero.")}
         </div>
       )}
 
@@ -598,7 +598,7 @@ export default function ExamActive() {
                 {t("Question")} {q.index + 1} {t("of")} {TOTAL_Q}
               </span>
               <Pill pal={pal} tone="muted" style={{ fontSize: 10 }}>
-                {q.section === "A" ? t("Closed · 1 correct") : "Open"}
+                {q.section === "A" ? t("Closed · 1 correct") : t("Open type")}
               </Pill>
               <Pill pal={pal} tone="primarySoft" style={{ fontSize: 10 }}>
                 {q.domain} · {q.topic}
@@ -725,7 +725,7 @@ export default function ExamActive() {
               <div style={{ marginTop: 22 }}>
                 <input
                   type="text"
-                  placeholder="Type your answer (number, word, or formula)…"
+                  placeholder={t("Type your answer (number, word, or formula)…")}
                   value={exam.answers[exam.current] ?? ""}
                   onChange={(e) => answerCurrent(e.target.value)}
                   style={{
@@ -836,7 +836,7 @@ export default function ExamActive() {
                 fontFamily: '"JetBrains Mono", monospace',
               }}
             >
-              javoblar varaqasi · 1–20
+              {t("Answer sheet · 1–20")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {Array.from({ length: 20 }).map((_, i) => {
@@ -902,7 +902,7 @@ export default function ExamActive() {
                 marginBottom: 10,
               }}
             >
-              Tools
+              {t("Tools")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {(
@@ -946,7 +946,7 @@ export default function ExamActive() {
                           textTransform: "uppercase",
                         }}
                       >
-                        Open
+                        {t("Open")}
                       </span>
                     )}
                   </button>
@@ -966,7 +966,8 @@ export default function ExamActive() {
               lineHeight: 1.4,
             }}
           >
-            <strong>Note:</strong> You cannot return to Section A after submitting it.
+            <strong>{t("Note:")}</strong>{" "}
+            {t("You cannot return to Section A after submitting it.")}
           </div>
         </div>
       </div>

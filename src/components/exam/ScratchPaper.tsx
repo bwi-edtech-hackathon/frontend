@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { palette as pal } from "@/lib/palette";
+import { useT } from "@/lib/i18n";
 import { FloatingPanel } from "@/components/exam/FloatingPanel";
 import { Icon } from "@/components/ui/Icon";
 
@@ -7,6 +8,7 @@ const WIDTH = 360;
 const HEIGHT = 320;
 
 export function ScratchPaper({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -123,7 +125,7 @@ export function ScratchPaper({ onClose }: { onClose: () => void }) {
 
   return (
     <FloatingPanel
-      title="Scratch paper"
+      title={t("Scratch paper")}
       onClose={onClose}
       width={WIDTH + 28}
       initialX={typeof window !== "undefined" ? window.innerWidth - WIDTH - 60 : 100}
@@ -139,18 +141,18 @@ export function ScratchPaper({ onClose }: { onClose: () => void }) {
       >
         <ToolBtn
           on={stroke === "ink"}
-          label="Pen"
+          label={t("Pen")}
           onClick={() => setStroke("ink")}
           icon={<Icon name="sparkle" size={12} />}
         />
         <ToolBtn
           on={stroke === "highlight"}
-          label="Highlighter"
+          label={t("Highlighter")}
           onClick={() => setStroke("highlight")}
           icon={<Icon name="bolt" size={12} />}
         />
         <div style={{ flex: 1 }} />
-        <ToolBtn label="Clear" onClick={clear} icon={<Icon name="x" size={12} />} />
+        <ToolBtn label={t("Clear")} onClick={clear} icon={<Icon name="x" size={12} />} />
       </div>
       <canvas
         ref={canvasRef}

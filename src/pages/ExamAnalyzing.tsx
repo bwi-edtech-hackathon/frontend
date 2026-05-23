@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { palette as pal } from "@/lib/palette";
+import { useT } from "@/lib/i18n";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Primitives";
 import { getExamResult } from "@/lib/api";
@@ -14,19 +15,23 @@ type Stage = {
   duration: number;
 };
 
-const STAGES: Stage[] = [
-  { key: "scoring", label: "Scoring closed-type answers…", icon: "check", duration: 900 },
-  { key: "open", label: "Grading open-type responses with AI…", icon: "sparkle", duration: 1400 },
-  { key: "rasch", label: "Calibrating Rasch score against item difficulty…", icon: "bolt", duration: 1100 },
-  { key: "topics", label: "Identifying weakest topics & impact ranking…", icon: "search", duration: 900 },
-  { key: "report", label: "Building your diagnostic report…", icon: "book", duration: 700 },
-];
-
 export default function ExamAnalyzing() {
+  const t = useT();
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state ?? {}) as LocationState;
   const sessionId = state.sessionId ?? "pending";
+
+  const STAGES = useMemo<Stage[]>(
+    () => [
+      { key: "scoring", label: t("Scoring closed-type answers…"), icon: "check", duration: 900 },
+      { key: "open", label: t("Grading open-type responses with AI…"), icon: "sparkle", duration: 1400 },
+      { key: "rasch", label: t("Calibrating Rasch score against item difficulty…"), icon: "bolt", duration: 1100 },
+      { key: "topics", label: t("Identifying weakest topics & impact ranking…"), icon: "search", duration: 900 },
+      { key: "report", label: t("Building your diagnostic report…"), icon: "book", duration: 700 },
+    ],
+    [t],
+  );
 
   const [stageIdx, setStageIdx] = useState(0);
 
@@ -63,7 +68,7 @@ export default function ExamAnalyzing() {
       cancelled = true;
       timers.forEach(window.clearTimeout);
     };
-  }, [navigate, sessionId]);
+  }, [navigate, sessionId, STAGES]);
 
   const progress = Math.min(100, (stageIdx / STAGES.length) * 100);
 
@@ -93,7 +98,7 @@ export default function ExamAnalyzing() {
           maxWidth: 540,
         }}
       >
-        Analyzing your answers…
+        {t("Analyzing your answers…")}
       </div>
       <div
         style={{
@@ -105,8 +110,9 @@ export default function ExamAnalyzing() {
           marginBottom: 36,
         }}
       >
-        Hold tight — we're running your answers through the same Rasch-calibrated
-        engine the BMBA uses and generating a diagnostic report.
+        {t(
+          "Hold tight — we're running your answers through the same Rasch-calibrated engine the BMBA uses and generating a diagnostic report.",
+        )}
       </div>
 
       <div

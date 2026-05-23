@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { palette as pal } from "@/lib/palette";
+import { useT } from "@/lib/i18n";
 import { FloatingPanel } from "@/components/exam/FloatingPanel";
 
 type Op = "+" | "-" | "*" | "/" | null;
 
 // Simple 4-function calculator: enough for the spec's "Calculator" tool.
 export function Calculator({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [display, setDisplay] = useState("0");
   const [acc, setAcc] = useState<number | null>(null);
   const [op, setOp] = useState<Op>(null);
@@ -146,7 +148,7 @@ export function Calculator({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <FloatingPanel title="Calculator" onClose={onClose} width={280}>
+    <FloatingPanel title={t("Calculator")} onClose={onClose} width={280}>
       <div
         style={{
           padding: "10px 12px",

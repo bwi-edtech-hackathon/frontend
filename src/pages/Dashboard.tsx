@@ -202,7 +202,7 @@ export default function Dashboard() {
                 <div
                   style={{ fontSize: 13, color: pal.muted, marginBottom: 2 }}
                 >
-                  Rasch score · last 8 weeks
+                  {t("Rasch score · last 8 weeks")}
                 </div>
                 <div
                   style={{ display: "flex", alignItems: "baseline", gap: 10 }}
@@ -217,16 +217,16 @@ export default function Dashboard() {
                     56.4
                   </span>
                   <Pill pal={pal} tone="good">
-                    +8.2 vs 4 wk ago
+                    {t("+8.2 vs 4 wk ago")}
                   </Pill>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <Pill pal={pal} tone="primary">
-                  Math
+                  {t("Math")}
                 </Pill>
                 <Pill pal={pal} tone="outline">
-                  Uzbek
+                  {t("Uzbek")}
                 </Pill>
               </div>
             </div>
@@ -260,7 +260,7 @@ export default function Dashboard() {
                 fill={pal.accent}
                 fontWeight="600"
               >
-                B+ target · 60
+                {t("B+ target · 60")}
               </text>
               <defs>
                 <linearGradient id="area" x1="0" x2="0" y1="0" y2="1">
@@ -330,12 +330,12 @@ export default function Dashboard() {
                     letterSpacing: "-0.015em",
                   }}
                 >
-                  Topic mastery heat map
+                  {t("Topic mastery heat map")}
                 </div>
                 <div
                   style={{ fontSize: 12, color: pal.muted, marginTop: 2 }}
                 >
-                  Math · 22 topics · darker = stronger
+                  {t("Math · 22 topics · darker = stronger")}
                 </div>
               </div>
               <div
@@ -397,7 +397,7 @@ export default function Dashboard() {
                 color: pal.muted,
               }}
             >
-              <span>Algebra · Geometry · Functions · Probability</span>
+              <span>{t("Algebra · Geometry · Functions · Probability")}</span>
             </div>
           </Card>
 
@@ -418,22 +418,22 @@ export default function Dashboard() {
                   marginBottom: 12,
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 700 }}>Recent mocks</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{t("Recent mocks")}</div>
                 <span
                   style={{ fontSize: 12, color: pal.primary, fontWeight: 600 }}
                 >
-                  See all
+                  {t("See all")}
                 </span>
               </div>
               {[
-                { name: "Full mock #7", date: "Aug 3", score: "58.2", grade: "B" },
+                { name: t("Full mock #7"), date: "Aug 3", score: "58.2", grade: "B" },
                 {
-                  name: "Checkpoint · Vieta",
+                  name: t("Checkpoint · Vieta"),
                   date: "Aug 2",
                   score: "8/10",
                   grade: "—",
                 },
-                { name: "Full mock #6", date: "Jul 27", score: "54.1", grade: "B" },
+                { name: t("Full mock #6"), date: "Jul 27", score: "54.1", grade: "B" },
               ].map((e, i) => (
                 <div
                   key={i}
@@ -487,11 +487,11 @@ export default function Dashboard() {
                   marginBottom: 12,
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 700 }}>Recent battles</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{t("Recent battles")}</div>
                 <span
                   style={{ fontSize: 12, color: pal.primary, fontWeight: 600 }}
                 >
-                  See all
+                  {t("See all")}
                 </span>
               </div>
               {[
@@ -575,10 +575,10 @@ export default function Dashboard() {
                   marginBottom: 10,
                 }}
               >
-                Today's lesson
+                {t("Today's lesson")}
               </div>
               <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 4 }}>
-                Algebra
+                {t("Algebra")}
               </div>
               <div
                 style={{
@@ -589,7 +589,7 @@ export default function Dashboard() {
                   lineHeight: 1.2,
                 }}
               >
-                Quadratic equations — Discriminant method
+                {t("Quadratic equations")} — {t("Discriminant method")}
               </div>
               <div
                 style={{
@@ -616,7 +616,7 @@ export default function Dashboard() {
                   full
                   iconAfter={<Icon name="arrow-right" size={16} />}
                 >
-                  Resume lesson
+                  {t("Resume lesson")}
                 </Btn>
               </Link>
             </div>
@@ -632,9 +632,9 @@ export default function Dashboard() {
               }}
             >
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>Quick Battle</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{t("Quick Battle")}</div>
                 <div style={{ fontSize: 11, color: pal.muted }}>
-                  Find an opponent in 30s
+                  {t("Find an opponent in 30s")}
                 </div>
               </div>
               <Icon name="swords" size={20} color={pal.primary} />
@@ -647,7 +647,7 @@ export default function Dashboard() {
                 full
                 icon={<Icon name="play" size={14} />}
               >
-                Match in Math
+                {t("Match in Math")}
               </Btn>
             </Link>
           </Card>
@@ -661,8 +661,8 @@ export default function Dashboard() {
                 marginBottom: 12,
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 700 }}>Friends online</div>
-              <span style={{ fontSize: 11, color: pal.muted }}>3 of 12</span>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{t("Friends online")}</div>
+              <span style={{ fontSize: 11, color: pal.muted }}>3 / 12</span>
             </div>
             {[
               { name: "Bekzod", elo: 1612 },
@@ -706,7 +706,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <Btn pal={pal} tone="soft" size="sm">
-                  Challenge
+                  {t("Challenge")}
                 </Btn>
               </div>
             ))}

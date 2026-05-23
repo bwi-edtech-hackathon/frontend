@@ -106,7 +106,7 @@ export default function ExamLanding() {
                 style={{ marginBottom: 12 }}
                 icon={<Icon name="book" size={12} />}
               >
-                BMBA format
+                {t("BMBA format")}
               </Pill>
               <div
                 style={{
@@ -117,7 +117,7 @@ export default function ExamLanding() {
                   maxWidth: 460,
                 }}
               >
-                Realistic 150-minute simulation
+                {t("Realistic 150-minute simulation")}
               </div>
               <p
                 style={{
@@ -128,8 +128,9 @@ export default function ExamLanding() {
                   maxWidth: 520,
                 }}
               >
-                Same scoring engine as the real Milliy Sertifikat: Rasch-calibrated grading,
-                section structure, proctor-style timer warnings, auto-save every 30 seconds.
+                {t(
+                  "Same scoring engine as the real Milliy Sertifikat: Rasch-calibrated grading, section structure, proctor-style timer warnings, auto-save every 30 seconds.",
+                )}
               </p>
 
               <div
@@ -142,10 +143,10 @@ export default function ExamLanding() {
                 }}
               >
                 {[
-                  { label: "Duration", value: "150 min", icon: "clock" as const },
-                  { label: "Questions", value: "45", icon: "book" as const },
-                  { label: "Section A", value: "35 closed", icon: "check" as const },
-                  { label: "Section B", value: "10 open", icon: "sparkle" as const },
+                  { label: t("Duration"), value: t("150 min"), icon: "clock" as const },
+                  { label: t("Questions"), value: "45", icon: "book" as const },
+                  { label: t("Section A"), value: t("35 closed"), icon: "check" as const },
+                  { label: t("Section B"), value: t("10 open"), icon: "sparkle" as const },
                 ].map((s) => (
                   <div key={s.label}>
                     <div
@@ -191,7 +192,7 @@ export default function ExamLanding() {
                 marginBottom: 12,
               }}
             >
-              Pick subject
+              {t("Pick subject")}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {SUBJECTS.map((s) => {
@@ -232,30 +233,38 @@ export default function ExamLanding() {
                 marginBottom: 12,
               }}
             >
-              Before you start
+              {t("Before you start")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {(
                 [
                   {
                     icon: "clock",
-                    title: "Strict timer",
-                    body: "150 minutes total with warnings at 30, 15, and 5 minutes remaining. Auto-submits at zero.",
+                    title: t("Strict timer"),
+                    body: t(
+                      "150 minutes total with warnings at 30, 15, and 5 minutes remaining. Auto-submits at zero.",
+                    ),
                   },
                   {
                     icon: "lock",
-                    title: "No going back",
-                    body: "Once you submit Section A, you can't return to it. Section B opens immediately after.",
+                    title: t("No going back"),
+                    body: t(
+                      "Once you submit Section A, you can't return to it. Section B opens immediately after.",
+                    ),
                   },
                   {
                     icon: "sparkle",
-                    title: "Tools",
-                    body: "Calculator, formula sheet, and scratch paper available from the right toolbar at any time.",
+                    title: t("Tools"),
+                    body: t(
+                      "Calculator, formula sheet, and scratch paper available from the right toolbar at any time.",
+                    ),
                   },
                   {
                     icon: "shield",
-                    title: "Auto-save",
-                    body: "Every answer and flag is saved as you go. Reload safely if your connection drops.",
+                    title: t("Auto-save"),
+                    body: t(
+                      "Every answer and flag is saved as you go. Reload safely if your connection drops.",
+                    ),
                   },
                 ] as const
               ).map((r) => (
@@ -325,7 +334,7 @@ export default function ExamLanding() {
                 marginBottom: 8,
               }}
             >
-              Ready to begin?
+              {t("Ready to begin?")}
             </div>
             <div
               style={{
@@ -335,7 +344,7 @@ export default function ExamLanding() {
                 lineHeight: 1.15,
               }}
             >
-              {t(SUBJECTS.find((s) => s.code === subject)?.label || "Mathematics")} mock
+              {t(SUBJECTS.find((s) => s.code === subject)?.label || "Mathematics")} {t("mock")}
             </div>
             <div
               style={{
@@ -345,8 +354,9 @@ export default function ExamLanding() {
                 lineHeight: 1.55,
               }}
             >
-              Once you press Start, the timer begins immediately and runs in the
-              background even if you switch tabs.
+              {t(
+                "Once you press Start, the timer begins immediately and runs in the background even if you switch tabs.",
+              )}
             </div>
 
             <div style={{ marginTop: 18 }}>
@@ -358,7 +368,7 @@ export default function ExamLanding() {
                 iconAfter={<Icon name="arrow-right" size={16} />}
                 onClick={start}
               >
-                {starting ? "Starting…" : "Start exam"}
+                {starting ? t("Starting…") : t("Start exam")}
               </Btn>
               <div
                 style={{
@@ -368,7 +378,7 @@ export default function ExamLanding() {
                   textAlign: "center",
                 }}
               >
-                Find a quiet 2.5h window — exit closes the session.
+                {t("Find a quiet 2.5h window — exit closes the session.")}
               </div>
             </div>
           </Card>
@@ -384,7 +394,7 @@ export default function ExamLanding() {
                 marginBottom: 10,
               }}
             >
-              Grading scale
+              {t("Grading scale")}
             </div>
             {(
               [
@@ -431,7 +441,7 @@ export default function ExamLanding() {
                 lineHeight: 1.5,
               }}
             >
-              Minimum 46 points needed for any certificate.
+              {t("Minimum 46 points needed for any certificate.")}
             </div>
           </Card>
         </div>

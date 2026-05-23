@@ -346,7 +346,7 @@ export default function Leaderboard() {
                     {t("You")} · Diana M.
                   </div>
                   <div style={{ fontSize: 11, color: pal.muted }}>
-                    Lyceum #1, Tashkent
+                    {t("Lyceum #1, Tashkent")}
                   </div>
                 </div>
               </div>
@@ -424,7 +424,7 @@ export default function Leaderboard() {
               </Pill>
             </div>
             <div style={{ fontSize: 12, color: pal.muted }}>
-              of 8,412 students in Math
+              {t("of 8,412 students in Math")}
             </div>
             <div
               style={{
@@ -494,7 +494,7 @@ export default function Leaderboard() {
             <div
               style={{ fontSize: 12, color: pal.muted, marginTop: 4 }}
             >
-              Monday 00:00 Tashkent time
+              {t("Monday 00:00 Tashkent time")}
             </div>
             <div
               style={{
@@ -506,14 +506,14 @@ export default function Leaderboard() {
             <div
               style={{ fontSize: 12, color: pal.muted, marginBottom: 8 }}
             >
-              This week's prize pool
+              {t("This week's prize pool")}
             </div>
             <Pill
               pal={pal}
               tone="accentSoft"
               icon={<Icon name="trophy" size={13} />}
             >
-              Top 10 · Premium month
+              {t("Top 10 · Premium month")}
             </Pill>
           </Card>
 
@@ -523,7 +523,7 @@ export default function Leaderboard() {
             style={{ background: pal.surfaceAlt }}
           >
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
-              Climb faster
+              {t("Climb faster")}
             </div>
             <div
               style={{

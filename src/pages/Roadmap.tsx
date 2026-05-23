@@ -399,7 +399,7 @@ export default function Roadmap() {
             {[
               { c: pal.primary, l: t("Mastered"), n: 2, border: false },
               { c: pal.accent, l: t("In progress"), n: 1, border: false },
-              { c: pal.line, l: "Locked", n: 8, border: true },
+              { c: pal.line, l: t("Locked"), n: 8, border: true },
             ].map((r, i) => (
               <div
                 key={i}

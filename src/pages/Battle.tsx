@@ -533,9 +533,9 @@ export default function Battle() {
               <span style={{ fontSize: 11, color: pal.muted }}>3 of 12</span>
             </div>
             {[
-              { name: "Bekzod", elo: 1612, status: "In Math lobby" },
-              { name: "Madina", elo: 1340, status: "Studying" },
-              { name: "Jasur", elo: 1455, status: "Online" },
+              { name: "Bekzod", elo: 1612, status: t("In Math lobby") },
+              { name: "Madina", elo: 1340, status: t("Studying") },
+              { name: "Jasur", elo: 1455, status: t("Online") },
             ].map((f, i) => (
               <div
                 key={i}

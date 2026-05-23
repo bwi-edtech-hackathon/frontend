@@ -131,6 +131,52 @@ const STRINGS: Dict = {
     uz: "Ketma-ketliklar",
   },
 
+  // Chat Lesson body content
+  "I see you struggled with this on your checkpoint:": {
+    ru: "Я вижу, у вас возникли трудности с этим на чекпоинте:",
+    uz: "Nazoratda bu bilan qiyinchilikka uchraganingizni ko'rdim:",
+  },
+  "Before we solve it, can you tell me what": {
+    ru: "Прежде чем решать, скажите, какой",
+    uz: "Yechishdan oldin, qanday",
+  },
+  type: { ru: "тип", uz: "tur" },
+  "of equation this is?": {
+    ru: "тип уравнения это?",
+    uz: "tenglama ekanini ayta olasizmi?",
+  },
+  "Right. The general form is": {
+    ru: "Верно. Общий вид:",
+    uz: "To'g'ri. Umumiy ko'rinishi:",
+  },
+  and: { ru: "и", uz: "va" },
+  "Session progress": { ru: "Прогресс сессии", uz: "Seans bo'yicha yutuq" },
+  "Identified equation type": {
+    ru: "Определили тип уравнения",
+    uz: "Tenglama turini aniqlandi",
+  },
+  "Recognized coefficients": {
+    ru: "Распознали коэффициенты",
+    uz: "Koeffisiyentlarni aniqlandi",
+  },
+  "Compute discriminant": {
+    ru: "Вычислить дискриминант",
+    uz: "Diskriminantni hisoblang",
+  },
+  "Apply quadratic formula": {
+    ru: "Применить квадратную формулу",
+    uz: "Kvadrat formulani qo'llang",
+  },
+  "Verify with practice": {
+    ru: "Проверить на практике",
+    uz: "Amaliyot bilan tekshiring",
+  },
+  "Tip:": { ru: "Совет:", uz: "Maslahat:" },
+  "Drop an image of your handwritten work — the coach will read it.": {
+    ru: "Загрузите фото рукописной работы — коуч прочтёт.",
+    uz: "Qo'lda yozilgan ishingiz rasmini yuklang — kouch o'qiydi.",
+  },
+
   // Chat Lesson
   mastery: { ru: "освоено", uz: "o'zlashtirildi" },
   "I get it": { ru: "Понятно", uz: "Tushundim" },
@@ -164,6 +210,34 @@ const STRINGS: Dict = {
   Leaderboard: { ru: "Рейтинг", uz: "Reyting" },
 
   // Web Dashboard
+  "Rasch score · last 8 weeks": {
+    ru: "Rasch-балл · последние 8 недель",
+    uz: "Rasch ball · so'nggi 8 hafta",
+  },
+  "+8.2 vs 4 wk ago": {
+    ru: "+8,2 vs 4 нед. назад",
+    uz: "+8.2 oldingi 4 haftaga",
+  },
+  Uzbek: { ru: "Узб.", uz: "O'zbek" },
+  "B+ target · 60": { ru: "B+ цель · 60", uz: "B+ maqsad · 60" },
+  "Topic mastery heat map": {
+    ru: "Тепловая карта тем",
+    uz: "Mavzu o'zlashtirishi xaritasi",
+  },
+  "Math · 22 topics · darker = stronger": {
+    ru: "Матем. · 22 темы · темнее = крепче",
+    uz: "Matem. · 22 mavzu · qoraroq = mustahkam",
+  },
+  "Algebra · Geometry · Functions · Probability": {
+    ru: "Алгебра · Геометрия · Функции · Вероятность",
+    uz: "Algebra · Geometriya · Funksiyalar · Ehtimollik",
+  },
+  "Recent mocks": { ru: "Недавние пробные", uz: "So'nggi sinovlar" },
+  "Full mock #7": { ru: "Пробный #7", uz: "Sinov #7" },
+  "Full mock #6": { ru: "Пробный #6", uz: "Sinov #6" },
+  "Checkpoint · Vieta": { ru: "Чекпоинт · Виета", uz: "Nazorat · Viyet" },
+  "Quick Battle": { ru: "Быстрая битва", uz: "Tezkor jang" },
+  "Match in Math": { ru: "Битва по матем.", uz: "Matem. jang" },
   "Tuesday, August 5": { ru: "Вторник, 5 авг.", uz: "Seshanba, 5 avg." },
   "Search topics…": { ru: "Поиск тем…", uz: "Mavzu qidirish…" },
   "Rasch score": { ru: "Rasch-балл", uz: "Rasch ball" },
@@ -179,7 +253,30 @@ const STRINGS: Dict = {
   "Friends online": { ru: "Друзья онлайн", uz: "Onlayn do'stlar" },
   "Tashkent · Math": { ru: "Ташкент · Матем.", uz: "Toshkent · Matem." },
 
+  // Battle status & friends
+  "In Math lobby": { ru: "В лобби матем.", uz: "Matem. lobbida" },
+  Studying: { ru: "Учится", uz: "O'qimoqda" },
+  Online: { ru: "Онлайн", uz: "Onlayn" },
+
   // Web Leaderboard
+  "Lyceum #1, Tashkent": { ru: "Лицей №1, Ташкент", uz: "1-litsey, Toshkent" },
+  "of 8,412 students in Math": {
+    ru: "из 8 412 студентов в матем.",
+    uz: "matem. fanida 8412 o'quvchidan",
+  },
+  "Monday 00:00 Tashkent time": {
+    ru: "Понедельник 00:00 по Ташкенту",
+    uz: "Dushanba 00:00 Toshkent vaqti",
+  },
+  "This week's prize pool": {
+    ru: "Призовой фонд недели",
+    uz: "Bu haftaning sovrin jamg'armasi",
+  },
+  "Top 10 · Premium month": {
+    ru: "Топ 10 · месяц Premium",
+    uz: "Top 10 · Premium oy",
+  },
+  "Climb faster": { ru: "Расти быстрее", uz: "Tezroq ko'taril" },
   Rank: { ru: "Место", uz: "O'rin" },
   Student: { ru: "Студент", uz: "O'quvchi" },
   Global: { ru: "Глобальный", uz: "Global" },
@@ -192,6 +289,46 @@ const STRINGS: Dict = {
   "Weekly reset in": { ru: "Сброс через", uz: "Yangilanish" },
 
   // Landing
+  "studying right now": { ru: "учатся прямо сейчас", uz: "hozir o'qishmoqda" },
+  "across 14 viloyats": { ru: "в 14 регионах", uz: "14 viloyatda" },
+  "Estimated grade": { ru: "Прогноз балла", uz: "Baho prognozi" },
+  Estimated: { ru: "Прогноз", uz: "Prognoz" },
+  "Salom, Diana": { ru: "Привет, Diana", uz: "Salom, Diana" },
+  "Math · 5 min": { ru: "Матем. · 5 мин", uz: "Matem. · 5 daqiqa" },
+  "+18 ELO": { ru: "+18 ELO", uz: "+18 ELO" },
+  "applicants used Milliy Sertifikat 2025/26": {
+    ru: "абитуриентов сдали Milliy Sertifikat 2025/26",
+    uz: "abituriyentlar Milliy Sertifikat 2025/26 dan foydalandi",
+  },
+  "YoY growth in certificate usage": {
+    ru: "рост популярности сертификата за год",
+    uz: "sertifikat foydalanishining yillik o'sishi",
+  },
+  "growth in general-subject certificates": {
+    ru: "рост по общеобразовательным сертификатам",
+    uz: "umumiy sertifikatlar bo'yicha o'sish",
+  },
+  "salary bonus for teachers with C1+ certificate": {
+    ru: "надбавка учителям с сертификатом C1+",
+    uz: "C1+ sertifikatli o'qituvchilarga ish haqi qo'shimchasi",
+  },
+  "What's inside": { ru: "Что внутри", uz: "Ichida nima bor" },
+  "The first prep platform that": {
+    ru: "Первая платформа подготовки, которая",
+    uz: "Sizni biladigan birinchi tayyorgarlik platformasi",
+  },
+  "knows you": { ru: "знает вас", uz: "biladi" },
+  Recommended: { ru: "Рекомендуем", uz: "Tavsiya" },
+  "© 2026 CoachAI · BMBA prep platform · Tashkent, UZ": {
+    ru: "© 2026 CoachAI · Платформа подготовки к BMBA · Ташкент, UZ",
+    uz: "© 2026 CoachAI · BMBA tayyorgarlik platformasi · Toshkent, UZ",
+  },
+  "In your equation, what are": {
+    ru: "В вашем уравнении, чему равны",
+    uz: "Sizning tenglamangizda nimaga teng",
+  },
+  Karakalpak: { ru: "Каракалпак.", uz: "Qoraqalpoq" },
+
   Pricing: { ru: "Тарифы", uz: "Narxlar" },
   "Sign in": { ru: "Войти", uz: "Kirish" },
   "Start free": { ru: "Начать бесплатно", uz: "Bepul boshlash" },
@@ -275,6 +412,69 @@ const STRINGS: Dict = {
   "Get started": { ru: "Начать", uz: "Boshlash" },
   "Choose Premium": { ru: "Выбрать Premium", uz: "Premium tanlash" },
 
+  // Exam Landing
+  "BMBA format": { ru: "Формат BMBA", uz: "BMBA formati" },
+  "Realistic 150-minute simulation": {
+    ru: "Реалистичная 150-минутная симуляция",
+    uz: "Real 150 daqiqalik simulyatsiya",
+  },
+  "Same scoring engine as the real Milliy Sertifikat: Rasch-calibrated grading, section structure, proctor-style timer warnings, auto-save every 30 seconds.":
+    {
+      ru: "Тот же движок оценки, что и у настоящего Milliy Sertifikat: оценка по Rasch, структура секций, предупреждения по таймеру и автосохранение каждые 30 секунд.",
+      uz: "Haqiqiy Milliy Sertifikat bilan bir xil baholash tizimi: Rasch baholash, bo'limlar tuzilishi, taymer ogohlantirishlari va har 30 soniyada avtosaqlash.",
+    },
+  Duration: { ru: "Время", uz: "Davomiyligi" },
+  "150 min": { ru: "150 мин", uz: "150 daqiqa" },
+  Questions: { ru: "Вопросов", uz: "Savollar" },
+  "Section A": { ru: "Часть А", uz: "A bo'lim" },
+  "35 closed": { ru: "35 закрытых", uz: "35 ta yopiq" },
+  "Section B": { ru: "Часть Б", uz: "B bo'lim" },
+  "10 open": { ru: "10 открытых", uz: "10 ta ochiq" },
+  "Pick subject": { ru: "Выберите предмет", uz: "Fanni tanlang" },
+  "Before you start": { ru: "Перед началом", uz: "Boshlashdan oldin" },
+  "Strict timer": { ru: "Жёсткий таймер", uz: "Qattiq taymer" },
+  "150 minutes total with warnings at 30, 15, and 5 minutes remaining. Auto-submits at zero.":
+    {
+      ru: "150 минут всего с предупреждениями при 30, 15 и 5 оставшихся минутах. Автоматически сдаётся на нуле.",
+      uz: "Jami 150 daqiqa, 30, 15 va 5 daqiqa qolganda ogohlantirish. Nolda avto topshiriladi.",
+    },
+  "No going back": { ru: "Назад нельзя", uz: "Orqaga qaytib bo'lmaydi" },
+  "Once you submit Section A, you can't return to it. Section B opens immediately after.":
+    {
+      ru: "После сдачи Части А вернуться нельзя. Сразу открывается Часть Б.",
+      uz: "A bo'limini topshirgandan keyin unga qaytib bo'lmaydi. Darhol B bo'lim ochiladi.",
+    },
+  Tools: { ru: "Инструменты", uz: "Asboblar" },
+  "Calculator, formula sheet, and scratch paper available from the right toolbar at any time.":
+    {
+      ru: "Калькулятор, формулы и черновик доступны в правой панели в любое время.",
+      uz: "Kalkulator, formulalar va qoralama o'ng paneldan istalgan vaqtda mavjud.",
+    },
+  "Auto-save": { ru: "Автосохранение", uz: "Avtosaqlash" },
+  "Every answer and flag is saved as you go. Reload safely if your connection drops.":
+    {
+      ru: "Каждый ответ и метка сохраняются на ходу. Можно безопасно перезагрузить при обрыве связи.",
+      uz: "Har bir javob va belgi saqlanib boriladi. Aloqa uzilsa, xavfsiz qayta yuklang.",
+    },
+  "Ready to begin?": { ru: "Готовы начать?", uz: "Boshlashga tayyormisiz?" },
+  mock: { ru: "пробный", uz: "sinov" },
+  "Once you press Start, the timer begins immediately and runs in the background even if you switch tabs.":
+    {
+      ru: "После нажатия «Старт» таймер запускается сразу и продолжается даже при переключении вкладок.",
+      uz: "Start tugmasini bossangiz, taymer darhol boshlanadi va boshqa varaqlarga o'tsangiz ham ishlaydi.",
+    },
+  "Starting…": { ru: "Запуск…", uz: "Boshlanmoqda…" },
+  "Start exam": { ru: "Начать экзамен", uz: "Imtihonni boshlash" },
+  "Find a quiet 2.5h window — exit closes the session.": {
+    ru: "Найдите тихое окно 2,5 ч — выход закрывает сессию.",
+    uz: "2,5 soatlik tinch vaqt toping — chiqish seansni yopadi.",
+  },
+  "Grading scale": { ru: "Шкала оценок", uz: "Baholash shkalasi" },
+  "Minimum 46 points needed for any certificate.": {
+    ru: "Минимум 46 баллов для любого сертификата.",
+    uz: "Har qanday sertifikat uchun kamida 46 ball kerak.",
+  },
+
   // Mock Exam
   "Full Mock #8": { ru: "Пробный экзамен #8", uz: "Sinov imtihon #8" },
   "Auto-saved": { ru: "Автосохранено", uz: "Avtosaqlandi" },
@@ -295,6 +495,189 @@ const STRINGS: Dict = {
   "Time remaining": { ru: "Осталось", uz: "Qoldi" },
   "Question palette": { ru: "Список вопросов", uz: "Savollar ro'yxati" },
   "Answer sheet": { ru: "Лист ответов", uz: "Javoblar varaqasi" },
+  // Exam active
+  Open: { ru: "Открыт", uz: "Ochiq" },
+  "Open type": { ru: "Открытый", uz: "Ochiq turi" },
+  "Loading exam…": { ru: "Загрузка экзамена…", uz: "Imtihon yuklanmoqda…" },
+  "Wrap up. The exam will submit automatically.": {
+    ru: "Завершайте. Экзамен будет сдан автоматически.",
+    uz: "Yakunlang. Imtihon avto topshiriladi.",
+  },
+  "Proctor warning.": {
+    ru: "Предупреждение прокторинга.",
+    uz: "Proktor ogohlantirishi.",
+  },
+  "Could not submit exam. Try again.": {
+    ru: "Не удалось сдать экзамен. Попробуйте снова.",
+    uz: "Imtihonni topshirib bo'lmadi. Qaytadan urinib ko'ring.",
+  },
+  "Time's up — submitting your answers.": {
+    ru: "Время вышло — отправляем ваши ответы.",
+    uz: "Vaqt tugadi — javoblar yuborilmoqda.",
+  },
+  "Exit and discard this attempt? Your answers will be lost.": {
+    ru: "Выйти и сбросить попытку? Ответы будут потеряны.",
+    uz: "Chiqib, urinishni bekor qilamizmi? Javoblar yo'qoladi.",
+  },
+  "⚠ Less than 5 minutes remaining — your exam will auto-submit when the timer hits zero.":
+    {
+      ru: "⚠ Меньше 5 минут — экзамен сдастся автоматически при достижении нуля.",
+      uz: "⚠ 5 daqiqadan kam vaqt qoldi — taymer nolga yetganda imtihon avto topshiriladi.",
+    },
+  "Answer sheet · 1–20": {
+    ru: "Лист ответов · 1–20",
+    uz: "Javoblar varaqasi · 1–20",
+  },
+  "Type your answer (number, word, or formula)…": {
+    ru: "Введите ответ (число, слово или формулу)…",
+    uz: "Javobingizni kiriting (raqam, so'z yoki formula)…",
+  },
+  "Note:": { ru: "Примечание:", uz: "Eslatma:" },
+  "You cannot return to Section A after submitting it.": {
+    ru: "После отправки Части А вернуться нельзя.",
+    uz: "A bo'limini topshirgandan keyin unga qaytib bo'lmaydi.",
+  },
+  "Submit answered confirm": {
+    ru: "Сдать {answered}/{total} отвеченных?",
+    uz: "{answered}/{total} javob berildi, topshiriladimi?",
+  },
+
+  // Exam Analyzing
+  "Scoring closed-type answers…": {
+    ru: "Оценка закрытых ответов…",
+    uz: "Yopiq turdagi javoblar baholanmoqda…",
+  },
+  "Grading open-type responses with AI…": {
+    ru: "Оценка открытых ответов с помощью ИИ…",
+    uz: "Ochiq javoblar AI yordamida baholanmoqda…",
+  },
+  "Calibrating Rasch score against item difficulty…": {
+    ru: "Калибровка Rasch-балла по сложности заданий…",
+    uz: "Rasch ball topshiriqlar qiyinligi bo'yicha kalibrlanmoqda…",
+  },
+  "Identifying weakest topics & impact ranking…": {
+    ru: "Поиск слабых тем и ранжирование по влиянию…",
+    uz: "Eng zaif mavzular va ta'sir reytingi aniqlanmoqda…",
+  },
+  "Building your diagnostic report…": {
+    ru: "Создаём ваш диагностический отчёт…",
+    uz: "Diagnostik hisobotingiz yaratilmoqda…",
+  },
+  "Analyzing your answers…": {
+    ru: "Анализируем ваши ответы…",
+    uz: "Javoblaringiz tahlil qilinmoqda…",
+  },
+  "Hold tight — we're running your answers through the same Rasch-calibrated engine the BMBA uses and generating a diagnostic report.":
+    {
+      ru: "Подождите — мы прогоняем ваши ответы через тот же Rasch-движок BMBA и формируем диагностический отчёт.",
+      uz: "Sabr qiling — javoblaringizni BMBA ishlatadigan Rasch tizimi orqali o'tkazib, diagnostik hisobot tayyorlayapmiz.",
+    },
+
+  // Exam Result
+  "Loading your report…": {
+    ru: "Загрузка отчёта…",
+    uz: "Hisobotingiz yuklanmoqda…",
+  },
+  "Mock exam · Mathematics": {
+    ru: "Пробный · Математика",
+    uz: "Sinov · Matematika",
+  },
+  "Your diagnostic report": {
+    ru: "Ваш диагностический отчёт",
+    uz: "Diagnostik hisobotingiz",
+  },
+  "Back to dashboard": { ru: "На главную", uz: "Asosiyga qaytish" },
+  "Certificate-ready": { ru: "К сертификату готов", uz: "Sertifikatga tayyor" },
+  "Below pass threshold": { ru: "Ниже порога", uz: "O'tish bo'sag'asidan past" },
+  Grade: { ru: "Балл", uz: "Baho" },
+  "Rasch / 75": { ru: "Rasch / 75", uz: "Rasch / 75" },
+  "You answered {correct}/{total} correctly. Your weak topics are ranked below by impact on your final score — fix the top three and your projected grade jumps a tier.":
+    {
+      ru: "Вы ответили {correct}/{total} верно. Ваши слабые темы ниже отранжированы по влиянию на финал — закрыв топ-3, вы поднимете прогноз на ступень.",
+      uz: "Siz {correct}/{total} ga to'g'ri javob berdingiz. Zaif mavzularingiz quyida yakuniy ballga ta'siri bo'yicha tartiblangan — top-3 ni yopib, prognozingizni bir pog'ona ko'tarasiz.",
+    },
+  "Section A · closed": {
+    ru: "Часть А · закрытые",
+    uz: "A bo'lim · yopiq",
+  },
+  "Section B · open": {
+    ru: "Часть Б · открытые",
+    uz: "B bo'lim · ochiq",
+  },
+  "Analyze with AI Coach": {
+    ru: "Разобрать с ИИ-коучем",
+    uz: "AI-kouch bilan tahlil qilish",
+  },
+  "Updating…": { ru: "Обновление…", uz: "Yangilanmoqda…" },
+  "View updated roadmap": {
+    ru: "Открыть обновлённый план",
+    uz: "Yangilangan yo'lni ko'rish",
+  },
+  "Weakest topics": { ru: "Слабые темы", uz: "Eng zaif mavzular" },
+  "Ranked by impact on your projected final score": {
+    ru: "По влиянию на итоговый прогноз",
+    uz: "Yakuniy ballingizga ta'siri bo'yicha",
+  },
+  Top: { ru: "Топ", uz: "Top" },
+  "You're solid on": {
+    ru: "Вы сильны в",
+    uz: "Siz quyidagilarda mustahkamsiz",
+  },
+  "Don't drill these — diminishing returns. Focus minutes on the weak list to climb tiers faster.":
+    {
+      ru: "Не тратьте время на эти — отдача падает. Сосредоточьтесь на слабых темах, чтобы расти быстрее.",
+      uz: "Bularga vaqt sarflamang — foyda kam. Tezroq ko'tarilish uchun zaif ro'yxatga e'tibor bering.",
+    },
+  "Question breakdown": { ru: "Разбор вопросов", uz: "Savollar tahlili" },
+  "First {n} questions · tap \"Explain\" to ask the AI Coach": {
+    ru: "Первые {n} вопросов · нажмите «Объяснить», чтобы спросить ИИ-коуча",
+    uz: "Birinchi {n} ta savol · AI-kouchdan so'rash uchun «Tushuntirish» ni bosing",
+  },
+  "View all": { ru: "Все", uz: "Hammasi" },
+  Yours: { ru: "Ваш", uz: "Sizniki" },
+  Correct: { ru: "Верный", uz: "To'g'ri" },
+  Time: { ru: "Время", uz: "Vaqt" },
+  Action: { ru: "Действие", uz: "Harakat" },
+  Explain: { ru: "Объяснить", uz: "Tushuntirish" },
+  "Talk through wrong answers": {
+    ru: "Разобрать ошибки",
+    uz: "Xato javoblarni muhokama qilish",
+  },
+  "AI Coach uses the Socratic method — no lectures, just questions that lead you to the answer.":
+    {
+      ru: "ИИ-коуч использует сократический метод — без лекций, только вопросы, ведущие к ответу.",
+      uz: "AI-kouch sokratik usuldan foydalanadi — ma'ruzalar emas, javobga olib boruvchi savollar.",
+    },
+  "Start session": { ru: "Начать сессию", uz: "Seansni boshlash" },
+  "We'll rebuild your study path around the weak topics, pacing checkpoints up to your exam date.":
+    {
+      ru: "Мы перестроим план вокруг слабых тем с чекпоинтами до даты экзамена.",
+      uz: "Reja zaif mavzular atrofida qayta tuziladi, nazoratlar imtihon sanasigacha taqsimlanadi.",
+    },
+  "Update plan": { ru: "Обновить план", uz: "Rejani yangilash" },
+  "Drill the topics in battles": {
+    ru: "Прорабатывать темы в битвах",
+    uz: "Mavzularni janglarda mashq qiling",
+  },
+  "5-minute ranked duels filtered to your weakest topics — the cheapest exposure per minute.":
+    {
+      ru: "5-минутные рейтинговые дуэли по слабым темам — лучшая отдача за минуту.",
+      uz: "5 daqiqalik reytingli janglar zaif mavzularga moslangan — daqiqada eng katta foyda.",
+    },
+  "Open battle lobby": { ru: "Открыть лобби битв", uz: "Jang lobbisini ochish" },
+
+  // Exam tools
+  Pen: { ru: "Перо", uz: "Qalam" },
+  Highlighter: { ru: "Маркер", uz: "Marker" },
+  Clear: { ru: "Очистить", uz: "Tozalash" },
+  "Search formulas…": { ru: "Поиск формул…", uz: "Formula qidirish…" },
+  "Loading…": { ru: "Загрузка…", uz: "Yuklanmoqda…" },
+  "No matches.": { ru: "Совпадений нет.", uz: "Mosliklar yo'q." },
+  Close: { ru: "Закрыть", uz: "Yopish" },
+
+  // Roadmap
+  Locked: { ru: "Заблокировано", uz: "Yopilgan" },
+
   "Find the value of": { ru: "Найдите значение", uz: "Quyidagining qiymatini toping" },
   "such that the system has": {
     ru: "при котором система имеет",

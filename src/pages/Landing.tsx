@@ -141,10 +141,10 @@ export default function Landing() {
               ))}
             </div>
             <div style={{ fontSize: 12, color: pal.muted, lineHeight: 1.4 }}>
-              <strong style={{ color: pal.text }}>5,200+ students</strong>{" "}
-              studying right now
+              <strong style={{ color: pal.text }}>5,200+</strong>{" "}
+              {t("studying right now")}
               <br />
-              across 14 viloyats
+              {t("across 14 viloyats")}
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function Landing() {
               />
             </div>
             <div style={{ marginTop: 30 }}>
-              <div style={{ fontSize: 11, opacity: 0.7 }}>Estimated grade</div>
+              <div style={{ fontSize: 11, opacity: 0.7 }}>{t("Estimated grade")}</div>
               <div
                 style={{
                   fontSize: 56,
@@ -234,7 +234,7 @@ export default function Landing() {
           >
             <div style={{ padding: "28px 18px 0" }}>
               <div style={{ fontSize: 9, color: pal.muted, marginBottom: 2 }}>
-                Salom, Diana
+                {t("Salom, Diana")}
               </div>
               <Logo pal={pal} size={13} />
             </div>
@@ -266,7 +266,7 @@ export default function Landing() {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  Math · 5 min
+                  {t("Math · 5 min")}
                 </div>
                 <div
                   style={{
@@ -279,7 +279,7 @@ export default function Landing() {
                     display: "inline-block",
                   }}
                 >
-                  +18 ELO
+                  {t("+18 ELO")}
                 </div>
               </div>
               <div
@@ -337,12 +337,12 @@ export default function Landing() {
         }}
       >
         {[
-          { v: "143,400", l: "applicants used Milliy Sertifikat 2025/26" },
-          { v: "+180%", l: "YoY growth in certificate usage" },
-          { v: "311%", l: "growth in general-subject certificates" },
+          { v: "143,400", l: t("applicants used Milliy Sertifikat 2025/26") },
+          { v: "+180%", l: t("YoY growth in certificate usage") },
+          { v: "311%", l: t("growth in general-subject certificates") },
           {
             v: "50%",
-            l: "salary bonus for teachers with C1+ certificate",
+            l: t("salary bonus for teachers with C1+ certificate"),
           },
         ].map((s, i) => (
           <div key={i}>
@@ -376,7 +376,7 @@ export default function Landing() {
       <section style={{ padding: "80px 48px" }}>
         <div style={{ marginBottom: 40 }}>
           <Pill pal={pal} tone="outline" style={{ marginBottom: 12 }}>
-            What's inside
+            {t("What's inside")}
           </Pill>
           <h2
             style={{
@@ -387,7 +387,7 @@ export default function Landing() {
               maxWidth: 600,
             }}
           >
-            The first prep platform that{" "}
+            {t("The first prep platform that")}{" "}
             <span
               style={{
                 color: pal.primary,
@@ -396,7 +396,7 @@ export default function Landing() {
                 fontWeight: 500,
               }}
             >
-              knows you
+              {t("knows you")}
             </span>
             .
           </h2>
@@ -436,7 +436,7 @@ export default function Landing() {
                     />
                     <div>
                       <div style={{ fontSize: 11, color: pal.muted }}>
-                        Estimated
+                        {t("Estimated")}
                       </div>
                       <div
                         style={{
@@ -527,7 +527,7 @@ export default function Landing() {
                       lineHeight: 1.4,
                     }}
                   >
-                    In your equation, what are{" "}
+                    {t("In your equation, what are")}{" "}
                     {["a", "b", "c"].map((v, i) => (
                       <span key={v}>
                         <span
@@ -787,7 +787,7 @@ export default function Landing() {
             t("Geography"),
             t("Uzbek lit"),
             t("Russian lit"),
-            "Karakalpak",
+            t("Karakalpak"),
           ].map((s) => (
             <Pill
               key={s}
@@ -872,7 +872,7 @@ export default function Landing() {
                     borderRadius: 999,
                   }}
                 >
-                  Recommended
+                  {t("Recommended")}
                 </div>
               )}
               <div
@@ -945,7 +945,7 @@ export default function Landing() {
         }}
       >
         <Logo pal={pal} size={16} />
-        <div>© 2026 CoachAI · BMBA prep platform · Tashkent, UZ</div>
+        <div>{t("© 2026 CoachAI · BMBA prep platform · Tashkent, UZ")}</div>
       </footer>
     </div>
   );

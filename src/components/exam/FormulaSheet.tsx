@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { palette as pal } from "@/lib/palette";
+import { useT } from "@/lib/i18n";
 import { FloatingPanel } from "@/components/exam/FloatingPanel";
 import { Icon } from "@/components/ui/Icon";
 import { getFormulaSheet, type FormulaGroup, type SubjectCode } from "@/lib/api";
@@ -11,6 +12,7 @@ export function FormulaSheet({
   onClose: () => void;
   subject?: SubjectCode;
 }) {
+  const t = useT();
   const [groups, setGroups] = useState<FormulaGroup[] | null>(null);
   const [query, setQuery] = useState("");
 
@@ -43,7 +45,7 @@ export function FormulaSheet({
 
   return (
     <FloatingPanel
-      title="Formula sheet"
+      title={t("Formula sheet")}
       onClose={onClose}
       width={340}
       initialX={typeof window !== "undefined" ? window.innerWidth - 360 : 100}
@@ -65,7 +67,7 @@ export function FormulaSheet({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search formulas…"
+          placeholder={t("Search formulas…")}
           style={{
             flex: 1,
             border: "none",
@@ -88,12 +90,12 @@ export function FormulaSheet({
       >
         {filtered === null && (
           <div style={{ fontSize: 12, color: pal.muted, padding: 12 }}>
-            Loading…
+            {t("Loading…")}
           </div>
         )}
         {filtered !== null && filtered.length === 0 && (
           <div style={{ fontSize: 12, color: pal.muted, padding: 12 }}>
-            No matches.
+            {t("No matches.")}
           </div>
         )}
         {filtered?.map((g) => (

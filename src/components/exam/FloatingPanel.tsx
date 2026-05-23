@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { palette as pal } from "@/lib/palette";
+import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 
 type Props = {
@@ -30,6 +31,7 @@ export function FloatingPanel({
   children,
   contentStyle,
 }: Props) {
+  const t = useT();
   const [pos, setPos] = useState({
     x: initialX ?? (typeof window !== "undefined" ? window.innerWidth - width - 32 : 100),
     y: initialY ?? 120,
@@ -103,7 +105,7 @@ export function FloatingPanel({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           style={{
             width: 22,
             height: 22,
