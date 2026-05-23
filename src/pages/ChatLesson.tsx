@@ -1,46 +1,153 @@
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { Btn, Card, MathPill, Pill, Progress } from "@/components/ui/Primitives";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
+import {
+  createChatSession,
+  endChatSession,
+  listChatSessions,
+  markUnderstood,
+  sendChatMessage,
+  type ChatSessionSummary,
+} from "@/lib/api";
+
+type LocalMessage =
+  | { id: string; role: "coach"; nodes: React.ReactNode }
+  | { id: string; role: "user"; text: string };
 
 export default function ChatLesson() {
   const t = useT();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
+  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [coachThinking, setCoachThinking] = useState(true);
+  const [messages, setMessages] = useState<LocalMessage[]>(() => seedMessages(t));
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const sessions = [
-    {
-      topic: t("Quadratic equations"),
-      msg: "a = 1, b = -5, c = 6…",
+  useEffect(() => {
+    let live = true;
+    listChatSessions().then((s) => {
+      if (!live) return;
+      setSessions(s);
+      const active = s.find((x) => x.status === "active") ?? s[0];
+      if (active) setActiveId(active.id);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = setTimeout(() => setCoachThinking(false), 1200);
+    return () => clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, coachThinking]);
+
+  const handleSend = async () => {
+    const text = draft.trim();
+    if (!text || sending) return;
+    setDraft("");
+    const userMsg: LocalMessage = { id: `u-${Date.now()}`, role: "user", text };
+    setMessages((m) => [...m, userMsg]);
+    setSending(true);
+    setCoachThinking(true);
+    try {
+      const reply = await sendChatMessage(activeId ?? "current", text);
+      setMessages((m) => [
+        ...m,
+        { id: reply.id, role: "coach", nodes: reply.text },
+      ]);
+    } catch {
+      toast.error(t("Coach is offline. Try again in a moment."));
+    } finally {
+      setSending(false);
+      setCoachThinking(false);
+    }
+  };
+
+  const handleNewSession = async () => {
+    const s = await createChatSession();
+    const summary: ChatSessionSummary = {
+      id: s.id,
+      topic: s.topic,
+      preview: t("Just started"),
       when: "Now",
-      active: true,
-    },
-    {
-      topic: t("Logarithms"),
-      msg: "Master · 8 exchanges",
-      when: "2h",
-      active: false,
-    },
-    {
-      topic: t("Vieta's theorem"),
-      msg: "Mastered · 5 exchanges",
-      when: "Yest.",
-      active: false,
-    },
-    {
-      topic: t("Discriminant"),
-      msg: "Still struggling",
-      when: "2d",
-      active: false,
-    },
-    {
-      topic: t("Linear equations"),
-      msg: "Mastered · 4 exch.",
-      when: "5d",
-      active: false,
-    },
-  ];
+      status: "active",
+    };
+    setSessions((prev) => [summary, ...prev]);
+    setActiveId(s.id);
+    setMessages([
+      {
+        id: "coach-intro",
+        role: "coach",
+        nodes: t("New session started. What topic should we work on?"),
+      },
+    ]);
+    setCoachThinking(false);
+  };
+
+  const handlePickSession = (id: string) => {
+    setActiveId(id);
+    const s = sessions.find((x) => x.id === id);
+    if (s) {
+      setMessages([
+        {
+          id: `coach-resume-${id}`,
+          role: "coach",
+          nodes: t("Resumed: {topic}. Where did we leave off?").replace(
+            "{topic}",
+            s.topic,
+          ),
+        },
+      ]);
+    }
+  };
+
+  const handleUnderstood = async () => {
+    if (!activeId) return;
+    await markUnderstood(activeId);
+    toast.success(t("Marked as understood — moving on."));
+    setMessages((m) => [
+      ...m,
+      {
+        id: `coach-ok-${Date.now()}`,
+        role: "coach",
+        nodes: t("Great. Let's try one more on your own before we move on."),
+      },
+    ]);
+  };
+
+  const handleEndSession = async () => {
+    if (!activeId) return;
+    await endChatSession(activeId);
+    toast.success(t("Session ended."));
+    navigate("/app");
+  };
+
+  const handleAttach = (name: IconName) => {
+    if (name === "image") {
+      toast.info(t("Image upload — connect once backend storage is ready."));
+      return;
+    }
+    if (name === "mic") {
+      toast.info(t("Voice notes coming soon."));
+      return;
+    }
+    toast.info(t("Coach suggestions coming soon."));
+  };
 
   return (
     <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
@@ -63,6 +170,7 @@ export default function ChatLesson() {
           size="md"
           full
           icon={<Icon name="plus" size={14} />}
+          onClick={handleNewSession}
         >
           {t("New session")}
         </Btn>
@@ -79,63 +187,71 @@ export default function ChatLesson() {
         >
           {t("Recent sessions")}
         </div>
-        {sessions.map((s, i) => (
-          <div
-            key={i}
-            style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              background: s.active ? pal.primarySoft : "transparent",
-              border: s.active
-                ? `1px solid ${pal.primary}`
-                : "1px solid transparent",
-              cursor: "pointer",
-            }}
-          >
-            <div
+        {sessions.map((s) => {
+          const active = s.id === activeId;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => handlePickSession(s.id)}
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                gap: 8,
+                padding: "10px 12px",
+                borderRadius: 12,
+                background: active ? pal.primarySoft : "transparent",
+                border: active
+                  ? `1px solid ${pal.primary}`
+                  : "1px solid transparent",
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "inherit",
+                width: "100%",
               }}
             >
               <div
                 style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: s.active ? pal.primary : pal.text,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: active ? pal.primary : pal.text,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t(s.topic)}
+                </div>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: pal.muted,
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.when}
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: pal.muted,
+                  marginTop: 2,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                 }}
               >
-                {s.topic}
+                {s.preview}
               </div>
-              <span
-                style={{
-                  fontSize: 10,
-                  color: pal.muted,
-                  flexShrink: 0,
-                }}
-              >
-                {s.when}
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: pal.muted,
-                marginTop: 2,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {s.msg}
-            </div>
-          </div>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       {/* Center — chat */}
@@ -198,17 +314,18 @@ export default function ChatLesson() {
               </span>
             </div>
           )}
-          <Btn pal={pal} tone="soft" size="sm">
+          <Btn pal={pal} tone="soft" size="sm" onClick={handleUnderstood}>
             {t("I get it")}
           </Btn>
           {!isMobile && (
-            <Btn pal={pal} tone="outline" size="sm">
+            <Btn pal={pal} tone="outline" size="sm" onClick={handleEndSession}>
               {t("End session")}
             </Btn>
           )}
         </div>
 
         <div
+          ref={scrollRef}
           style={{
             flex: 1,
             overflow: "auto",
@@ -224,166 +341,96 @@ export default function ChatLesson() {
               gap: 18,
             }}
           >
-            {/* Coach 1 */}
-            <div style={{ display: "flex", gap: 12 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 12,
-                  background: pal.primarySoft,
-                  color: pal.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="logo" size={22} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: pal.muted,
-                    marginBottom: 4,
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t("Coach")}
-                </div>
-                <div
-                  style={{
-                    background: pal.surface,
-                    border: `1px solid ${pal.line}`,
-                    padding: "14px 18px",
-                    borderRadius: 18,
-                    borderTopLeftRadius: 6,
-                    fontSize: 15,
-                    lineHeight: 1.55,
-                  }}
-                >
-                  {t("I see you struggled with this on your checkpoint:")}
-                  <MathPill pal={pal} block>
-                    x² − 5x + 6 = 0
-                  </MathPill>
-                  {t("Before we solve it, can you tell me what")}{" "}
-                  <em>{t("type")}</em> {t("of equation this is?")}
-                </div>
-              </div>
-            </div>
-
-            {/* User */}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div
-                style={{
-                  maxWidth: "70%",
-                  background: pal.primary,
-                  color: pal.primaryInk,
-                  padding: "12px 18px",
-                  borderRadius: 18,
-                  borderTopRightRadius: 6,
-                  fontSize: 15,
-                  lineHeight: 1.4,
-                }}
-              >
-                {t("Quadratic?")}
-              </div>
-            </div>
-
-            {/* Coach 2 */}
-            <div style={{ display: "flex", gap: 12 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 12,
-                  background: pal.primarySoft,
-                  color: pal.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Icon name="logo" size={22} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    background: pal.surface,
-                    border: `1px solid ${pal.line}`,
-                    padding: "14px 18px",
-                    borderRadius: 18,
-                    borderTopLeftRadius: 6,
-                    fontSize: 15,
-                    lineHeight: 1.55,
-                  }}
-                >
-                  {t("Right. The general form is")}
-                  <MathPill pal={pal} block>
-                    ax² + bx + c = 0
-                  </MathPill>
-                  {t("In your equation, what are")}{" "}
-                  <MathPill pal={pal}>a</MathPill>,{" "}
-                  <MathPill pal={pal}>b</MathPill> {t("and")}{" "}
-                  <MathPill pal={pal}>c</MathPill>?
-                </div>
-              </div>
-            </div>
-
-            {/* User */}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div
-                style={{
-                  maxWidth: "70%",
-                  background: pal.primary,
-                  color: pal.primaryInk,
-                  padding: "12px 18px",
-                  borderRadius: 18,
-                  borderTopRightRadius: 6,
-                  fontSize: 15,
-                  lineHeight: 1.4,
-                }}
-              >
-                a = 1, b = −5, c = 6
-              </div>
-            </div>
-
-            {/* Typing */}
-            <div style={{ display: "flex", gap: 12, paddingLeft: 48 }}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 4,
-                  alignItems: "center",
-                }}
-              >
-                {[0, 1, 2].map((i) => (
+            {messages.map((m) =>
+              m.role === "coach" ? (
+                <div key={m.id} style={{ display: "flex", gap: 12 }}>
                   <div
-                    key={i}
                     style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: "50%",
-                      background: pal.muted,
-                      opacity: 0.4 + i * 0.2,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 12,
+                      background: pal.primarySoft,
+                      color: pal.primary,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
                     }}
-                  />
-                ))}
-                <span
+                  >
+                    <Icon name="logo" size={22} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        background: pal.surface,
+                        border: `1px solid ${pal.line}`,
+                        padding: "14px 18px",
+                        borderRadius: 18,
+                        borderTopLeftRadius: 6,
+                        fontSize: 15,
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {m.nodes}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  key={m.id}
+                  style={{ display: "flex", justifyContent: "flex-end" }}
+                >
+                  <div
+                    style={{
+                      maxWidth: "70%",
+                      background: pal.primary,
+                      color: pal.primaryInk,
+                      padding: "12px 18px",
+                      borderRadius: 18,
+                      borderTopRightRadius: 6,
+                      fontSize: 15,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              ),
+            )}
+
+            {coachThinking && (
+              <div style={{ display: "flex", gap: 12, paddingLeft: 48 }}>
+                <div
                   style={{
-                    fontSize: 12,
-                    color: pal.muted,
-                    marginLeft: 6,
+                    display: "flex",
+                    gap: 4,
+                    alignItems: "center",
                   }}
                 >
-                  {t("Coach is thinking…")}
-                </span>
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: pal.muted,
+                        opacity: 0.4 + i * 0.2,
+                      }}
+                    />
+                  ))}
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: pal.muted,
+                      marginLeft: 6,
+                    }}
+                  >
+                    {t("Coach is thinking…")}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -427,12 +474,20 @@ export default function ChatLesson() {
                   fontFamily: "inherit",
                   color: pal.text,
                 }}
-                defaultValue=""
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSend();
+                  }
+                }}
               />
               {(["sparkle", "image", "mic"] as const).map((name) => (
                 <button
                   key={name}
                   type="button"
+                  onClick={() => handleAttach(name)}
                   style={{
                     width: 32,
                     height: 32,
@@ -456,6 +511,7 @@ export default function ChatLesson() {
               size="md"
               icon={<Icon name="send" size={14} />}
               style={{ height: 50, width: 50, padding: 0 }}
+              onClick={handleSend}
             />
           </div>
         </div>
@@ -617,4 +673,41 @@ export default function ChatLesson() {
       </div>
     </div>
   );
+}
+
+function seedMessages(t: (k: string) => string): LocalMessage[] {
+  return [
+    {
+      id: "seed-c-1",
+      role: "coach",
+      nodes: (
+        <>
+          {t("I see you struggled with this on your checkpoint:")}
+          <MathPill pal={pal} block>
+            x² − 5x + 6 = 0
+          </MathPill>
+          {t("Before we solve it, can you tell me what")}{" "}
+          <em>{t("type")}</em> {t("of equation this is?")}
+        </>
+      ),
+    },
+    { id: "seed-u-1", role: "user", text: t("Quadratic?") },
+    {
+      id: "seed-c-2",
+      role: "coach",
+      nodes: (
+        <>
+          {t("Right. The general form is")}
+          <MathPill pal={pal} block>
+            ax² + bx + c = 0
+          </MathPill>
+          {t("In your equation, what are")}{" "}
+          <MathPill pal={pal}>a</MathPill>,{" "}
+          <MathPill pal={pal}>b</MathPill> {t("and")}{" "}
+          <MathPill pal={pal}>c</MathPill>?
+        </>
+      ),
+    },
+    { id: "seed-u-2", role: "user", text: "a = 1, b = −5, c = 6" },
+  ];
 }

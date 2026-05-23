@@ -1,15 +1,63 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar, Btn, Card, Pill, Progress } from "@/components/ui/Primitives";
 import { LangSwitcher } from "@/components/app/LangSwitcher";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
+import { challengeFriend, getNotifications, searchTopics } from "@/lib/api";
 
 export default function Dashboard() {
   const t = useT();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [challenging, setChallenging] = useState<string | null>(null);
+
+  const handleSearchChange = async (v: string) => {
+    setSearch(v);
+    if (!v.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const res = await searchTopics(v);
+    setSearchResults(res.topics);
+  };
+
+  const handleBell = async () => {
+    const notes = await getNotifications();
+    const unread = notes.filter((n) => !n.read);
+    const first = unread[0] ?? notes[0];
+    if (!first) {
+      toast.info(t("No notifications"));
+      return;
+    }
+    toast(first.title, { description: first.body });
+  };
+
+  const handleChallenge = async (friendName: string) => {
+    if (challenging) return;
+    setChallenging(friendName);
+    try {
+      await challengeFriend(friendName, "MATH");
+      navigate("/app/battle/matchmaking", {
+        state: {
+          subject: "MATH",
+          mode: "friend",
+          opponentId: friendName,
+          opponentName: friendName,
+        },
+      });
+    } catch {
+      toast.error(t("Could not send challenge."));
+    } finally {
+      setChallenging(null);
+    }
+  };
 
   const kpis = [
     {
@@ -75,33 +123,89 @@ export default function Dashboard() {
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {!isMobile && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 12px",
-                borderRadius: 999,
-                background: pal.surface,
-                border: `1px solid ${pal.line}`,
-              }}
-            >
-              <Icon name="search" size={14} color={pal.muted} />
-              <span style={{ fontSize: 12, color: pal.muted }}>
-                {t("Search topics…")}
-              </span>
-              <span
+            <div style={{ position: "relative" }}>
+              <div
                 style={{
-                  fontSize: 10,
-                  color: pal.muted,
-                  padding: "1px 6px",
-                  borderRadius: 4,
-                  background: pal.surfaceAlt,
-                  fontFamily: '"JetBrains Mono", monospace',
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  background: pal.surface,
+                  border: `1px solid ${pal.line}`,
                 }}
               >
-                ⌘K
-              </span>
+                <Icon name="search" size={14} color={pal.muted} />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={t("Search topics…")}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    fontSize: 12,
+                    color: pal.text,
+                    fontFamily: "inherit",
+                    width: 160,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: pal.muted,
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                    background: pal.surfaceAlt,
+                    fontFamily: '"JetBrains Mono", monospace',
+                  }}
+                >
+                  ⌘K
+                </span>
+              </div>
+              {searchResults.length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 6px)",
+                    left: 0,
+                    right: 0,
+                    background: pal.surface,
+                    border: `1px solid ${pal.line}`,
+                    borderRadius: 12,
+                    boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+                    zIndex: 30,
+                    overflow: "hidden",
+                  }}
+                >
+                  {searchResults.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => {
+                        setSearch("");
+                        setSearchResults([]);
+                        navigate("/app/chat");
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "8px 12px",
+                        background: "transparent",
+                        border: "none",
+                        fontSize: 13,
+                        color: pal.text,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           <Pill
@@ -112,7 +216,10 @@ export default function Dashboard() {
             {t("12 day streak")}
           </Pill>
           <LangSwitcher />
-          <div
+          <button
+            type="button"
+            onClick={handleBell}
+            aria-label="Notifications"
             style={{
               width: 36,
               height: 36,
@@ -122,10 +229,12 @@ export default function Dashboard() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              cursor: "pointer",
+              fontFamily: "inherit",
             }}
           >
             <Icon name="bell" size={16} />
-          </div>
+          </button>
         </div>
       </div>
 
@@ -430,11 +539,17 @@ export default function Dashboard() {
                 }}
               >
                 <div style={{ fontSize: 14, fontWeight: 700 }}>{t("Recent mocks")}</div>
-                <span
-                  style={{ fontSize: 12, color: pal.primary, fontWeight: 600 }}
+                <Link
+                  to="/app/exam"
+                  style={{
+                    fontSize: 12,
+                    color: pal.primary,
+                    fontWeight: 600,
+                    textDecoration: "none",
+                  }}
                 >
                   {t("See all")}
-                </span>
+                </Link>
               </div>
               {[
                 { name: t("Full mock #7"), date: "Aug 3", score: "58.2", grade: "B" },
@@ -499,11 +614,17 @@ export default function Dashboard() {
                 }}
               >
                 <div style={{ fontSize: 14, fontWeight: 700 }}>{t("Recent battles")}</div>
-                <span
-                  style={{ fontSize: 12, color: pal.primary, fontWeight: 600 }}
+                <Link
+                  to="/app/battle"
+                  style={{
+                    fontSize: 12,
+                    color: pal.primary,
+                    fontWeight: 600,
+                    textDecoration: "none",
+                  }}
                 >
                   {t("See all")}
-                </span>
+                </Link>
               </div>
               {[
                 { name: "Sardor", score: "1240–980", won: true, delta: 18 },
@@ -650,17 +771,20 @@ export default function Dashboard() {
               </div>
               <Icon name="swords" size={20} color={pal.primary} />
             </div>
-            <Link to="/app/battle" style={{ textDecoration: "none" }}>
-              <Btn
-                pal={pal}
-                tone="primary"
-                size="md"
-                full
-                icon={<Icon name="play" size={14} />}
-              >
-                {t("Match in Math")}
-              </Btn>
-            </Link>
+            <Btn
+              pal={pal}
+              tone="primary"
+              size="md"
+              full
+              icon={<Icon name="play" size={14} />}
+              onClick={() =>
+                navigate("/app/battle/matchmaking", {
+                  state: { subject: "MATH", mode: "ranked" },
+                })
+              }
+            >
+              {t("Match in Math")}
+            </Btn>
           </Card>
 
           <Card pal={pal} pad={18}>
@@ -716,8 +840,13 @@ export default function Dashboard() {
                     ELO {f.elo}
                   </div>
                 </div>
-                <Btn pal={pal} tone="soft" size="sm">
-                  {t("Challenge")}
+                <Btn
+                  pal={pal}
+                  tone="soft"
+                  size="sm"
+                  onClick={() => handleChallenge(f.name)}
+                >
+                  {challenging === f.name ? t("Starting…") : t("Challenge")}
                 </Btn>
               </div>
             ))}

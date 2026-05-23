@@ -1,18 +1,28 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Avatar, Btn, Card, Pill } from "@/components/ui/Primitives";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
+import {
+  findRankedMatch,
+  getLeaderboard,
+  type LeaderboardRow,
+  type LeaderboardScope,
+  type SubjectCode,
+} from "@/lib/api";
 
-type Row = {
-  rank: number;
-  name: string;
-  school: string;
-  elo: number;
-  w: number;
-  l: number;
-  streak: number;
-};
+const SUBJECTS: { code: SubjectCode; label: string }[] = [
+  { code: "MATH", label: "Mathematics" },
+  { code: "PHYS", label: "Physics" },
+  { code: "CHEM", label: "Chemistry" },
+  { code: "BIO", label: "Biology" },
+  { code: "UZB_LIT", label: "Uzbek lit" },
+];
+
+type Row = LeaderboardRow;
 
 function TopThree() {
   const top = [
@@ -96,26 +106,50 @@ function TopThree() {
 
 export default function Leaderboard() {
   const t = useT();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
+  const [scope, setScope] = useState<LeaderboardScope>("global");
+  const [subject, setSubject] = useState<SubjectCode>("MATH");
+  const [rows, setRows] = useState<Row[]>([]);
+  const [matching, setMatching] = useState(false);
 
-  const rows: Row[] = [
-    { rank: 1, name: "Aziz Karimov", school: "Lyceum #1, Tashkent", elo: 2104, w: 312, l: 64, streak: 8 },
-    { rank: 2, name: "Lola Rashidova", school: "Westminster IUT", elo: 1980, w: 287, l: 71, streak: 4 },
-    { rank: 3, name: "Otabek Saidov", school: "Presidential School", elo: 1955, w: 251, l: 80, streak: 12 },
-    { rank: 4, name: "Nodira A.", school: "School #243", elo: 1902, w: 198, l: 62, streak: 2 },
-    { rank: 5, name: "Jamshid T.", school: "Lyceum #1, Samarkand", elo: 1881, w: 220, l: 91, streak: 1 },
-    { rank: 6, name: "Madina N.", school: "Lyceum #2", elo: 1820, w: 165, l: 64, streak: 0 },
-    { rank: 7, name: "Sardor X.", school: "School #19", elo: 1802, w: 178, l: 74, streak: 3 },
-    { rank: 8, name: "Dilshoda M.", school: "IB Tashkent", elo: 1781, w: 154, l: 60, streak: 5 },
-  ];
+  useEffect(() => {
+    let live = true;
+    getLeaderboard(scope, subject).then((data) => {
+      if (live) setRows(data.rows);
+    });
+    return () => {
+      live = false;
+    };
+  }, [scope, subject]);
 
-  const tabs: { id: string; label: string; icon: IconName; active: boolean }[] = [
-    { id: "global", label: t("Global"), icon: "globe", active: true },
-    { id: "weekly", label: t("This week"), icon: "clock", active: false },
-    { id: "friends", label: t("Friends"), icon: "users", active: false },
-    { id: "region", label: t("Tashkent"), icon: "map", active: false },
-    { id: "school", label: t("My school"), icon: "shield", active: false },
+  const handleQuickMatch = async () => {
+    if (matching) return;
+    setMatching(true);
+    try {
+      const m = await findRankedMatch(subject);
+      navigate("/app/battle/matchmaking", {
+        state: {
+          subject,
+          mode: "ranked",
+          opponentId: m.opponentId,
+          opponentName: m.opponentName,
+        },
+      });
+    } catch {
+      toast.error(t("Could not find a match."));
+    } finally {
+      setMatching(false);
+    }
+  };
+
+  const tabs: { id: LeaderboardScope; label: string; icon: IconName }[] = [
+    { id: "global", label: t("Global"), icon: "globe" },
+    { id: "weekly", label: t("This week"), icon: "clock" },
+    { id: "friends", label: t("Friends"), icon: "users" },
+    { id: "region", label: t("Tashkent"), icon: "map" },
+    { id: "school", label: t("My school"), icon: "shield" },
   ];
 
   return (
@@ -147,21 +181,29 @@ export default function Leaderboard() {
           </h1>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[
-            t("Mathematics"),
-            t("Physics"),
-            t("Chemistry"),
-            t("Biology"),
-            t("Uzbek lit"),
-          ].map((s, i) => (
-            <Pill
-              key={s}
-              pal={pal}
-              tone={i === 0 ? "primary" : "outline"}
-            >
-              {s}
-            </Pill>
-          ))}
+          {SUBJECTS.map((s) => {
+            const on = s.code === subject;
+            return (
+              <button
+                key={s.code}
+                type="button"
+                onClick={() => setSubject(s.code)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  border: `1px solid ${on ? pal.primary : pal.line}`,
+                  background: on ? pal.primary : "transparent",
+                  color: on ? pal.primaryInk : pal.text,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                {t(s.label)}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -182,28 +224,36 @@ export default function Leaderboard() {
               borderBottom: `1px solid ${pal.line}`,
             }}
           >
-            {tabs.map((tab) => (
-              <div
-                key={tab.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "10px 14px",
-                  fontSize: 13,
-                  fontWeight: tab.active ? 700 : 500,
-                  color: tab.active ? pal.primary : pal.muted,
-                  borderBottom: `2px solid ${
-                    tab.active ? pal.primary : "transparent"
-                  }`,
-                  marginBottom: -1,
-                  cursor: "pointer",
-                }}
-              >
-                <Icon name={tab.icon} size={14} />
-                {tab.label}
-              </div>
-            ))}
+            {tabs.map((tab) => {
+              const active = tab.id === scope;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setScope(tab.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "10px 14px",
+                    fontSize: 13,
+                    fontWeight: active ? 700 : 500,
+                    color: active ? pal.primary : pal.muted,
+                    borderBottom: `2px solid ${active ? pal.primary : "transparent"}`,
+                    borderTop: "none",
+                    borderLeft: "none",
+                    borderRight: "none",
+                    background: "transparent",
+                    marginBottom: -1,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <Icon name={tab.icon} size={14} />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           <TopThree />
@@ -559,8 +609,9 @@ export default function Leaderboard() {
               size="md"
               full
               icon={<Icon name="swords" size={14} />}
+              onClick={handleQuickMatch}
             >
-              {t("Quick Match")}
+              {matching ? t("Finding opponent…") : t("Quick Match")}
             </Btn>
           </Card>
         </div>

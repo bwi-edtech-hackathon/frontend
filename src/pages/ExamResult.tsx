@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
@@ -508,6 +509,11 @@ export default function ExamResult() {
               tone="ghost"
               size="sm"
               iconAfter={<Icon name="arrow-right" size={12} />}
+              onClick={() =>
+                toast.info(
+                  t("Full breakdown view coming once backend exposes per-question logs."),
+                )
+              }
             >
               {t("View all")}
             </Btn>

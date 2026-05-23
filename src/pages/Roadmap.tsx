@@ -1,9 +1,12 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Btn, Card, Pill, Progress } from "@/components/ui/Primitives";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
+import { regenerateRoadmap } from "@/lib/api";
 
 type NodeState = "done" | "active" | "locked";
 type NodeMeta = "event" | "checkpoint" | "goal" | undefined;
@@ -21,8 +24,39 @@ type RNode = {
 
 export default function Roadmap() {
   const t = useT();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
+  const [regenerating, setRegenerating] = useState(false);
+
+  const handleRegenerate = async () => {
+    if (regenerating) return;
+    setRegenerating(true);
+    try {
+      await regenerateRoadmap("latest");
+      toast.success(t("Roadmap updated — sequenced around your latest mock."));
+    } catch {
+      toast.error(t("Could not regenerate roadmap. Try again."));
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const handleNodeClick = (id: string, state: NodeState, meta: NodeMeta) => {
+    if (state === "locked") {
+      toast.info(t("Locked — finish the preceding checkpoint to unlock."));
+      return;
+    }
+    if (meta === "event" && id === "diag") {
+      navigate("/app/exam/result");
+      return;
+    }
+    if (meta === "event" || meta === "checkpoint" || meta === "goal") {
+      navigate("/app/exam");
+      return;
+    }
+    navigate("/app/chat");
+  };
 
   const nodes: RNode[] = [
     { id: "diag", week: 0, row: 1, name: t("Diagnostic"), mastery: 100, state: "done", meta: "event" },
@@ -114,8 +148,9 @@ export default function Roadmap() {
             tone="outline"
             size="md"
             icon={<Icon name="sparkle" size={14} />}
+            onClick={handleRegenerate}
           >
-            {t("Regenerate roadmap")}
+            {regenerating ? t("Updating…") : t("Regenerate roadmap")}
           </Btn>
         </div>
       </div>
@@ -229,11 +264,13 @@ export default function Roadmap() {
             return (
               <div
                 key={n.id}
+                onClick={() => handleNodeClick(n.id, n.state, n.meta)}
                 style={{
                   position: "absolute",
                   left: p.x - size / 2,
                   top: p.y - (isEvent ? 30 : 40),
                   width: size,
+                  cursor: "pointer",
                   ...(isEvent
                     ? {
                         background:

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
@@ -14,7 +15,12 @@ import {
 import { LangSwitcher } from "@/components/app/LangSwitcher";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 import { slugForSubject } from "@/lib/examMode";
-import type { SubjectCode } from "@/lib/api";
+import { startCheckout, type SubjectCode } from "@/lib/api";
+
+function scrollToId(id: string) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 const QUICK_SUBJECTS: { code: SubjectCode; label: string }[] = [
   { code: "MATH", label: "Mathematics" },
@@ -30,9 +36,36 @@ const QUICK_SUBJECTS: { code: SubjectCode; label: string }[] = [
 
 export default function Landing() {
   const t = useT();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
   const [navOpen, setNavOpen] = useState(false);
+  const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
+
+  const handleCheckout = async (plan: "free" | "standard" | "premium") => {
+    if (checkoutPlan) return;
+    if (plan === "free") {
+      navigate("/app");
+      return;
+    }
+    setCheckoutPlan(plan);
+    try {
+      const { url } = await startCheckout(plan);
+      toast.success(t("Redirecting to checkout…"), { description: url });
+      // TODO(backend): once checkout returns a real Stripe/Click/Payme URL, do `location.href = url;`
+      setTimeout(() => navigate("/app"), 600);
+    } catch {
+      toast.error(t("Could not start checkout. Try again."));
+    } finally {
+      setCheckoutPlan(null);
+    }
+  };
+
+  const navLinks = [
+    { label: t("How it works"), id: "how-it-works" },
+    { label: t("Mock exams"), id: "quick-mock" },
+    { label: t("Pricing"), id: "pricing" },
+  ];
 
   return (
     <div
@@ -67,10 +100,27 @@ export default function Landing() {
               fontWeight: 500,
             }}
           >
-            <span>{t("How it works")}</span>
-            <span>{t("Mock exams")}</span>
-            <span>{t("Pricing")}</span>
-            <span style={{ color: pal.text }}>{t("Sign in")}</span>
+            {navLinks.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => scrollToId(l.id)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  font: "inherit",
+                  color: pal.muted,
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+              >
+                {l.label}
+              </button>
+            ))}
+            <Link to="/app" style={{ color: pal.text, textDecoration: "none" }}>
+              {t("Sign in")}
+            </Link>
             <LangSwitcher />
             <Link to="/app" style={{ textDecoration: "none" }}>
               <Btn pal={pal} tone="primary" size="sm">
@@ -114,19 +164,42 @@ export default function Landing() {
             gap: 10,
           }}
         >
-          {[t("How it works"), t("Mock exams"), t("Pricing"), t("Sign in")].map((label) => (
-            <span
-              key={label}
+          {navLinks.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => {
+                setNavOpen(false);
+                scrollToId(l.id);
+              }}
               style={{
+                background: "transparent",
+                border: "none",
+                font: "inherit",
                 fontSize: 15,
                 fontWeight: 500,
                 color: pal.text,
                 padding: "8px 4px",
+                textAlign: "left",
+                cursor: "pointer",
               }}
             >
-              {label}
-            </span>
+              {l.label}
+            </button>
           ))}
+          <Link
+            to="/app"
+            onClick={() => setNavOpen(false)}
+            style={{
+              fontSize: 15,
+              fontWeight: 500,
+              color: pal.text,
+              padding: "8px 4px",
+              textDecoration: "none",
+            }}
+          >
+            {t("Sign in")}
+          </Link>
           <Link to="/app" style={{ textDecoration: "none" }}>
             <Btn pal={pal} tone="primary" size="md" full>
               {t("Start free")}
@@ -190,6 +263,7 @@ export default function Landing() {
               tone="outline"
               size="lg"
               icon={<Icon name="play" size={14} />}
+              onClick={() => scrollToId("how-it-works")}
             >
               {t("See how it works")}
             </Btn>
@@ -749,7 +823,10 @@ export default function Landing() {
       </section>
 
       {/* How it works */}
-      <section style={{ padding: isMobile ? "32px 16px 48px" : "40px 48px 80px" }}>
+      <section
+        id="how-it-works"
+        style={{ padding: isMobile ? "32px 16px 48px" : "40px 48px 80px", scrollMarginTop: 80 }}
+      >
         <h2
           style={{
             margin: "0 0 28px",
@@ -854,7 +931,7 @@ export default function Landing() {
       {/* Subjects — click a subject to start a quick mock without registration */}
       <section
         id="quick-mock"
-        style={{ padding: isMobile ? "0 16px 48px" : "0 48px 60px" }}
+        style={{ padding: isMobile ? "0 16px 48px" : "0 48px 60px", scrollMarginTop: 80 }}
       >
         <div
           style={{
@@ -968,7 +1045,10 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section style={{ padding: isMobile ? "32px 16px 48px" : "40px 48px 80px" }}>
+      <section
+        id="pricing"
+        style={{ padding: isMobile ? "32px 16px 48px" : "40px 48px 80px", scrollMarginTop: 80 }}
+      >
         <h2
           style={{
             margin: "0 0 28px",
@@ -986,9 +1066,10 @@ export default function Landing() {
             gap: 14,
           }}
         >
-          {[
+          {([
             {
               name: t("Free"),
+              plan: "free" as const,
               price: "0",
               desc: t("Diagnostic + 3 checkpoints/week + 5 battles/day"),
               cta: t("Get started"),
@@ -996,6 +1077,7 @@ export default function Landing() {
             },
             {
               name: t("Standard"),
+              plan: "standard" as const,
               price: "49,000",
               desc: t("1 subject unlimited + full roadmap + 30 battles/day"),
               cta: t("Get started"),
@@ -1003,6 +1085,7 @@ export default function Landing() {
             },
             {
               name: t("Premium"),
+              plan: "premium" as const,
               price: "99,000",
               desc: t(
                 "All subjects + unlimited chat lesson + unlimited battles",
@@ -1010,7 +1093,7 @@ export default function Landing() {
               cta: t("Choose Premium"),
               highlight: true,
             },
-          ].map((p, i) => (
+          ]).map((p, i) => (
             <Card
               key={i}
               pal={pal}
@@ -1090,8 +1173,9 @@ export default function Landing() {
                   size="md"
                   full
                   iconAfter={<Icon name="arrow-right" size={14} />}
+                  onClick={() => handleCheckout(p.plan)}
                 >
-                  {p.cta}
+                  {checkoutPlan === p.plan ? t("Starting…") : p.cta}
                 </Btn>
               </div>
             </Card>

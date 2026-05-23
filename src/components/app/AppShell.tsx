@@ -10,6 +10,9 @@ const FULL_BLEED_PREFIXES = [
   "/app/exam/active",
   "/app/exam/analyzing",
   "/app/exam/result",
+  "/app/battle/matchmaking",
+  "/app/battle/active",
+  "/app/battle/result",
 ];
 
 export function AppShell() {

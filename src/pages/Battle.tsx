@@ -1,13 +1,155 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar, Btn, Card, Pill } from "@/components/ui/Primitives";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
+import {
+  challengeFriend,
+  createFriendBattleInvite,
+  findRankedMatch,
+  getBattleHistory,
+  getFriendsOnline,
+  getLiveBattles,
+  startAIBattle,
+  type BattleHistoryItem,
+  type BattleTier,
+  type FriendOnline,
+  type LiveBattle,
+  type SubjectCode,
+} from "@/lib/api";
+
+const SUBJECT_OPTIONS: { code: SubjectCode; label: string }[] = [
+  { code: "MATH", label: "Mathematics" },
+  { code: "PHYS", label: "Physics" },
+  { code: "CHEM", label: "Chemistry" },
+  { code: "BIO", label: "Biology" },
+  { code: "HIST", label: "History" },
+  { code: "GEOG", label: "Geography" },
+  { code: "UZB_LIT", label: "Uzbek lit" },
+];
+
+const SUBJECT_LABELS: Record<SubjectCode, string> = {
+  MATH: "Mathematics",
+  PHYS: "Physics",
+  CHEM: "Chemistry",
+  BIO: "Biology",
+  HIST: "History",
+  GEOG: "Geography",
+  UZB_LIT: "Uzbek lit",
+  RUS_LIT: "Russian lit",
+  KAR_LIT: "Karakalpak",
+};
 
 export default function Battle() {
   const t = useT();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
+  const [subject, setSubject] = useState<SubjectCode>("MATH");
+  const [tier, setTier] = useState<BattleTier>("Silver");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [liveBattles, setLiveBattles] = useState<LiveBattle[]>([]);
+  const [history, setHistory] = useState<BattleHistoryItem[]>([]);
+  const [friends, setFriends] = useState<FriendOnline[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const [lb, hist, fr] = await Promise.all([
+        getLiveBattles(),
+        getBattleHistory(),
+        getFriendsOnline(),
+      ]);
+      if (!live) return;
+      setLiveBattles(lb);
+      setHistory(hist);
+      setFriends(fr);
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const handleFindOpponent = async () => {
+    if (busy) return;
+    setBusy("ranked");
+    try {
+      const m = await findRankedMatch(subject);
+      navigate("/app/battle/matchmaking", {
+        state: {
+          subject,
+          mode: "ranked",
+          opponentId: m.opponentId,
+          opponentName: m.opponentName,
+        },
+      });
+    } catch {
+      toast.error(t("Could not find a match. Try again."));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleAIBattle = async () => {
+    if (busy) return;
+    setBusy("ai");
+    try {
+      const m = await startAIBattle(subject, tier);
+      navigate("/app/battle/matchmaking", {
+        state: {
+          subject,
+          mode: "ai",
+          opponentId: m.opponentId,
+          opponentName: m.opponentName,
+        },
+      });
+    } catch {
+      toast.error(t("Could not start AI battle."));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleInviteFriend = async () => {
+    if (busy) return;
+    setBusy("invite");
+    try {
+      const { url } = await createFriendBattleInvite(subject);
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success(t("Invite link copied to clipboard"));
+      } catch {
+        toast(t("Invite link"), { description: url });
+      }
+    } catch {
+      toast.error(t("Could not create invite."));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleChallengeFriend = async (friendId: string, name: string) => {
+    if (busy) return;
+    setBusy(`fr-${friendId}`);
+    try {
+      await challengeFriend(friendId, subject);
+      navigate("/app/battle/matchmaking", {
+        state: {
+          subject,
+          mode: "friend",
+          opponentId: friendId,
+          opponentName: name,
+        },
+      });
+    } catch {
+      toast.error(t("Could not send challenge."));
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div>
@@ -67,24 +209,29 @@ export default function Battle() {
         {/* LEFT */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {[
-              t("Mathematics"),
-              t("Physics"),
-              t("Chemistry"),
-              t("Biology"),
-              t("History"),
-              t("Geography"),
-              t("Uzbek lit"),
-            ].map((s, i) => (
-              <Pill
-                key={s}
-                pal={pal}
-                tone={i === 0 ? "primary" : "outline"}
-                style={{ padding: "6px 14px", fontSize: 13 }}
-              >
-                {s}
-              </Pill>
-            ))}
+            {SUBJECT_OPTIONS.map((s) => {
+              const on = s.code === subject;
+              return (
+                <button
+                  key={s.code}
+                  type="button"
+                  onClick={() => setSubject(s.code)}
+                  style={{
+                    padding: "6px 14px",
+                    fontSize: 13,
+                    borderRadius: 999,
+                    border: `1px solid ${on ? pal.primary : pal.line}`,
+                    background: on ? pal.primary : "transparent",
+                    color: on ? pal.primaryInk : pal.text,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: 600,
+                  }}
+                >
+                  {t(s.label)}
+                </button>
+              );
+            })}
           </div>
 
           {/* Quick match hero */}
@@ -143,7 +290,7 @@ export default function Battle() {
                   lineHeight: 1.05,
                 }}
               >
-                {t("Mathematics")} · 10 Q
+                {t(SUBJECT_LABELS[subject])} · 10 Q
               </div>
               <div
                 style={{
@@ -191,8 +338,9 @@ export default function Battle() {
                   tone="accent"
                   size="lg"
                   iconAfter={<Icon name="arrow-right" size={16} />}
+                  onClick={handleFindOpponent}
                 >
-                  {t("Find opponent")}
+                  {busy === "ranked" ? t("Finding opponent…") : t("Find opponent")}
                 </Btn>
                 <Btn
                   pal={pal}
@@ -200,6 +348,11 @@ export default function Battle() {
                   size="lg"
                   dark
                   style={{ color: pal.primaryInk, opacity: 0.85 }}
+                  onClick={() =>
+                    toast.info(
+                      t("Topic filter coming soon — for now we match across all topics."),
+                    )
+                  }
                 >
                   {t("Sequences & series")}
                 </Btn>
@@ -244,8 +397,14 @@ export default function Battle() {
                 {t("Invite by link · unranked")}
               </div>
               <div style={{ marginTop: 14, display: "flex", gap: 6 }}>
-                <Btn pal={pal} tone="outline" size="sm" full>
-                  {t("Invite friend")}
+                <Btn
+                  pal={pal}
+                  tone="outline"
+                  size="sm"
+                  full
+                  onClick={handleInviteFriend}
+                >
+                  {busy === "invite" ? t("Creating link…") : t("Invite friend")}
                 </Btn>
               </div>
             </Card>
@@ -285,28 +444,41 @@ export default function Battle() {
                   gap: 4,
                 }}
               >
-                {[
-                  { n: t("Bronze"), on: false },
-                  { n: t("Silver"), on: true },
-                  { n: t("Gold"), on: false },
-                  { n: t("Plat"), on: false },
-                ].map((b) => (
-                  <div
-                    key={b.n}
-                    style={{
-                      padding: "6px 0",
-                      textAlign: "center",
-                      borderRadius: 8,
-                      border: `1px solid ${b.on ? pal.primary : pal.line}`,
-                      background: b.on ? pal.primarySoft : "transparent",
-                      color: b.on ? pal.primary : pal.muted,
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {b.n}
-                  </div>
-                ))}
+                {(["Bronze", "Silver", "Gold", "Plat"] as const).map((b) => {
+                  const on = b === tier;
+                  return (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setTier(b)}
+                      style={{
+                        padding: "6px 0",
+                        textAlign: "center",
+                        borderRadius: 8,
+                        border: `1px solid ${on ? pal.primary : pal.line}`,
+                        background: on ? pal.primarySoft : "transparent",
+                        color: on ? pal.primary : pal.muted,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {t(b)}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <Btn
+                  pal={pal}
+                  tone="outline"
+                  size="sm"
+                  full
+                  onClick={handleAIBattle}
+                >
+                  {busy === "ai" ? t("Starting…") : t("Start AI battle")}
+                </Btn>
               </div>
             </Card>
           </div>
@@ -325,56 +497,25 @@ export default function Battle() {
               <div style={{ fontSize: 15, fontWeight: 700 }}>
                 {t("Recent battles")}
               </div>
-              <span
+              <button
+                type="button"
+                onClick={() => navigate("/app/leaderboard")}
                 style={{
                   fontSize: 12,
                   color: pal.primary,
                   fontWeight: 600,
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
                 }}
               >
                 {t("History")} →
-              </span>
+              </button>
             </div>
-            {[
-              {
-                name: "Sardor Akhmedov",
-                score: "1240–980",
-                won: true,
-                delta: 18,
-                ago: "2h",
-                subj: t("Mathematics"),
-                result: "8–6",
-              },
-              {
-                name: "AI · Gold bot",
-                score: "880–1120",
-                won: false,
-                delta: -8,
-                ago: "5h",
-                subj: t("Mathematics"),
-                result: "6–7",
-              },
-              {
-                name: "Madina Yusupova",
-                score: "1340–910",
-                won: true,
-                delta: 22,
-                ago: "Y.",
-                subj: t("Mathematics"),
-                result: "9–5",
-              },
-              {
-                name: "Jasur Tursunov",
-                score: "1080–1080",
-                won: false,
-                delta: -2,
-                ago: "Y.",
-                subj: t("Physics"),
-                result: "7–7",
-              },
-            ].map((b, i, arr) => (
+            {history.map((b, i, arr) => (
               <div
-                key={i}
+                key={b.id}
                 style={{
                   display: "grid",
                   gridTemplateColumns: isMobile
@@ -387,11 +528,11 @@ export default function Battle() {
                     i < arr.length - 1 ? `1px solid ${pal.line}` : "none",
                 }}
               >
-                <Avatar name={b.name} size={36} hue={(i * 71) % 360} />
+                <Avatar name={b.opponentName} size={36} hue={(i * 71) % 360} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{b.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{b.opponentName}</div>
                   <div style={{ fontSize: 11, color: pal.muted }}>
-                    {b.subj} · {b.ago}
+                    {t(SUBJECT_LABELS[b.subject])} · {b.ago}
                   </div>
                 </div>
                 {!isMobile && (
@@ -468,13 +609,17 @@ export default function Battle() {
                 248 {t("in progress")}
               </span>
             </div>
-            {[
-              { a: "Aziz K.", b: "Lola R.", ae: 2104, be: 1980, q: 7 },
-              { a: "Otabek S.", b: "AI · Plat", ae: 1955, be: 2000, q: 3 },
-              { a: "Nodira A.", b: "Sardor X.", ae: 1902, be: 1802, q: 9 },
-            ].map((m, i) => (
+            {liveBattles.map((lb, i) => {
+              const m = {
+                a: lb.a.name,
+                b: lb.b.name,
+                ae: lb.a.elo,
+                be: lb.b.elo,
+                q: lb.question,
+              };
+              return (
               <div
-                key={i}
+                key={lb.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -526,7 +671,8 @@ export default function Battle() {
                 </div>
                 <Avatar name={m.b} size={26} hue={((i + 5) * 50) % 360} />
               </div>
-            ))}
+              );
+            })}
           </Card>
 
           {/* Friends online */}
@@ -544,13 +690,9 @@ export default function Battle() {
               </div>
               <span style={{ fontSize: 11, color: pal.muted }}>3 of 12</span>
             </div>
-            {[
-              { name: "Bekzod", elo: 1612, status: t("In Math lobby") },
-              { name: "Madina", elo: 1340, status: t("Studying") },
-              { name: "Jasur", elo: 1455, status: t("Online") },
-            ].map((f, i) => (
+            {friends.map((f, i) => (
               <div
-                key={i}
+                key={f.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -559,7 +701,7 @@ export default function Battle() {
                 }}
               >
                 <div style={{ position: "relative" }}>
-                  <Avatar name={f.name} size={32} hue={[20, 320, 100][i]} />
+                  <Avatar name={f.name} size={32} hue={[20, 320, 100][i % 3]} />
                   <span
                     style={{
                       position: "absolute",
@@ -576,11 +718,16 @@ export default function Battle() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 600 }}>{f.name}</div>
                   <div style={{ fontSize: 10, color: pal.muted }}>
-                    {f.status} · ELO {f.elo}
+                    {t(f.status)} · ELO {f.elo}
                   </div>
                 </div>
-                <Btn pal={pal} tone="soft" size="sm">
-                  {t("Challenge")}
+                <Btn
+                  pal={pal}
+                  tone="soft"
+                  size="sm"
+                  onClick={() => handleChallengeFriend(f.id, f.name)}
+                >
+                  {busy === `fr-${f.id}` ? t("Starting…") : t("Challenge")}
                 </Btn>
               </div>
             ))}

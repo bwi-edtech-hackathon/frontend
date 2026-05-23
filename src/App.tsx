@@ -8,6 +8,9 @@ import ExamAnalyzing from "@/pages/ExamAnalyzing";
 import ExamResult from "@/pages/ExamResult";
 import ChatLesson from "@/pages/ChatLesson";
 import Battle from "@/pages/Battle";
+import BattleMatchmaking from "@/pages/BattleMatchmaking";
+import BattleActive from "@/pages/BattleActive";
+import BattleResult from "@/pages/BattleResult";
 import Leaderboard from "@/pages/Leaderboard";
 import QuickExamStart from "@/pages/QuickExamStart";
 import { AppShell } from "@/components/app/AppShell";
@@ -35,6 +38,9 @@ function App() {
         <Route path="/app/exam/result" element={<ExamResult />} />
         <Route path="/app/chat" element={<ChatLesson />} />
         <Route path="/app/battle" element={<Battle />} />
+        <Route path="/app/battle/matchmaking" element={<BattleMatchmaking />} />
+        <Route path="/app/battle/active" element={<BattleActive />} />
+        <Route path="/app/battle/result" element={<BattleResult />} />
         <Route path="/app/leaderboard" element={<Leaderboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
