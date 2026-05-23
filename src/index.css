@@ -1,76 +1,39 @@
-@import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --ink: #0a0e27;
-    --bg: #ffffff;
-    --bg-soft: #f6f7fb;
-    --border: #e3e5ea;
-    --muted: #5f6675;
-
-    --blue: #4285f4;
-    --red: #ea4335;
-    --yellow: #fbbc04;
-    --green: #34a853;
-
-    --score-low: #ea4335;
-    --score-mid: #fbbc04;
-    --score-high: #34a853;
-  }
-
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-
-  body {
-    margin: 0;
-    background-color: var(--bg);
-    color: var(--ink);
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  .font-display {
-    font-family: "Google Sans", "Inter", system-ui, sans-serif;
-  }
-
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
-
-  *:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
+html,
+body,
+#root {
+  height: 100%;
 }
 
-@layer components {
-  .container-page {
-    @apply mx-auto w-full max-w-7xl px-6;
-  }
+body {
+  margin: 0;
+  background: #f2ede4;
+  color: #171a17;
+  font-family: "Inter", -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  .hero-radial {
-    background:
-      radial-gradient(
-        1200px 600px at 50% -10%,
-        rgba(66, 133, 244, 0.12),
-        transparent 60%
-      ),
-      radial-gradient(
-        900px 400px at 90% 10%,
-        rgba(52, 168, 83, 0.08),
-        transparent 60%
-      ),
-      var(--bg);
-  }
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+}
+
+*:focus-visible {
+  outline: 2px solid #0f6e56;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
