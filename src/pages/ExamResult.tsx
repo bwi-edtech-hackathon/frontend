@@ -10,10 +10,17 @@ import {
   regenerateRoadmap,
   requestAIAnalysis,
   type ExamSummary,
+  type SubjectCode,
 } from "@/lib/api";
 import { clearExam } from "@/lib/examState";
+import {
+  dashboardPathFor,
+  examModeFromPath,
+  labelForSubject,
+} from "@/lib/examMode";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 
-type LocationState = { sessionId?: string; result?: ExamSummary };
+type LocationState = { sessionId?: string; result?: ExamSummary; subject?: SubjectCode };
 
 export default function ExamResult() {
   const t = useT();
@@ -23,6 +30,10 @@ export default function ExamResult() {
 
   const [result, setResult] = useState<ExamSummary | null>(state.result ?? null);
   const [busy, setBusy] = useState<"ai" | "roadmap" | null>(null);
+  const mode = examModeFromPath(location.pathname);
+  const subjectLabel = state.subject ? labelForSubject(state.subject) : "Mathematics";
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
 
   // If we landed here directly (no nav state), fetch the latest result.
   useEffect(() => {
@@ -43,6 +54,10 @@ export default function ExamResult() {
 
   const onAnalyzeAI = async () => {
     if (!result || busy) return;
+    if (mode === "quick") {
+      navigate("/");
+      return;
+    }
     setBusy("ai");
     try {
       const { chatId } = await requestAIAnalysis(result.sessionId);
@@ -54,6 +69,10 @@ export default function ExamResult() {
 
   const onRoadmap = async () => {
     if (!result || busy) return;
+    if (mode === "quick") {
+      navigate("/");
+      return;
+    }
     setBusy("roadmap");
     try {
       await regenerateRoadmap(result.sessionId);
@@ -87,23 +106,24 @@ export default function ExamResult() {
       {/* Top */}
       <div
         style={{
-          padding: "20px 32px",
+          padding: isMobile ? "14px 16px" : "20px 32px",
           borderBottom: `1px solid ${pal.line}`,
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: isMobile ? 8 : 12,
+          flexWrap: "wrap",
         }}
       >
-        <Logo pal={pal} size={18} />
-        <div style={{ width: 1, height: 24, background: pal.line }} />
-        <div style={{ flex: 1 }}>
+        <Logo pal={pal} size={isMobile ? 16 : 18} />
+        {!isMobile && <div style={{ width: 1, height: 24, background: pal.line }} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, color: pal.muted, marginBottom: 2 }}>
-            {t("Mock exam · Mathematics")}
+            {mode === "quick" ? t("Quick mock") : t("Mock exam")} · {t(subjectLabel)}
           </div>
           <h1
             style={{
               margin: 0,
-              fontSize: 22,
+              fontSize: isMobile ? 18 : 22,
               fontWeight: 700,
               letterSpacing: "-0.025em",
             }}
@@ -111,19 +131,26 @@ export default function ExamResult() {
             {t("Your diagnostic report")}
           </h1>
         </div>
-        <LangSwitcher />
+        {!isMobile && <LangSwitcher />}
         <Btn
           pal={pal}
           tone="outline"
-          size="md"
-          onClick={() => navigate("/app")}
+          size={isMobile ? "sm" : "md"}
+          onClick={() => navigate(dashboardPathFor(mode))}
           icon={<Icon name="home" size={14} />}
         >
-          {t("Back to dashboard")}
+          {mode === "quick" ? t("Home") : t("Back to dashboard")}
         </Btn>
       </div>
 
-      <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div
+        style={{
+          padding: isMobile ? "16px" : "24px 32px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
         {/* Hero */}
         <Card
           pal={pal}
@@ -152,10 +179,10 @@ export default function ExamResult() {
           <div
             style={{
               position: "relative",
-              padding: 32,
+              padding: isMobile ? 20 : 32,
               display: "grid",
-              gridTemplateColumns: "auto 1fr auto",
-              gap: 28,
+              gridTemplateColumns: isAtMostTablet ? "1fr" : "auto 1fr auto",
+              gap: isMobile ? 18 : 28,
               alignItems: "center",
             }}
           >
@@ -244,31 +271,60 @@ export default function ExamResult() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 10,
-                minWidth: 220,
+                minWidth: isAtMostTablet ? 0 : 220,
               }}
             >
-              <Btn
-                pal={pal}
-                tone="accent"
-                size="lg"
-                full
-                icon={<Icon name="chat" size={16} />}
-                onClick={onAnalyzeAI}
-              >
-                {busy === "ai" ? t("Starting…") : t("Analyze with AI Coach")}
-              </Btn>
-              <Btn
-                pal={pal}
-                tone="outline"
-                size="lg"
-                full
-                dark
-                style={{ color: pal.primaryInk, borderColor: "rgba(255,255,255,0.35)" }}
-                icon={<Icon name="map" size={16} />}
-                onClick={onRoadmap}
-              >
-                {busy === "roadmap" ? t("Updating…") : t("View updated roadmap")}
-              </Btn>
+              {mode === "quick" ? (
+                <>
+                  <Btn
+                    pal={pal}
+                    tone="accent"
+                    size="lg"
+                    full
+                    icon={<Icon name="sparkle" size={16} />}
+                    onClick={() => navigate("/app")}
+                  >
+                    {t("Sign up to save your result")}
+                  </Btn>
+                  <Btn
+                    pal={pal}
+                    tone="outline"
+                    size="lg"
+                    full
+                    dark
+                    style={{ color: pal.primaryInk, borderColor: "rgba(255,255,255,0.35)" }}
+                    icon={<Icon name="home" size={16} />}
+                    onClick={() => navigate("/")}
+                  >
+                    {t("Back to home")}
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  <Btn
+                    pal={pal}
+                    tone="accent"
+                    size="lg"
+                    full
+                    icon={<Icon name="chat" size={16} />}
+                    onClick={onAnalyzeAI}
+                  >
+                    {busy === "ai" ? t("Starting…") : t("Analyze with AI Coach")}
+                  </Btn>
+                  <Btn
+                    pal={pal}
+                    tone="outline"
+                    size="lg"
+                    full
+                    dark
+                    style={{ color: pal.primaryInk, borderColor: "rgba(255,255,255,0.35)" }}
+                    icon={<Icon name="map" size={16} />}
+                    onClick={onRoadmap}
+                  >
+                    {busy === "roadmap" ? t("Updating…") : t("View updated roadmap")}
+                  </Btn>
+                </>
+              )}
             </div>
           </div>
         </Card>
@@ -277,7 +333,7 @@ export default function ExamResult() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1.4fr 1fr",
+            gridTemplateColumns: isAtMostTablet ? "1fr" : "1.4fr 1fr",
             gap: 16,
           }}
         >
@@ -314,8 +370,10 @@ export default function ExamResult() {
                   key={w.topic}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "28px 1fr 130px 90px 32px",
-                    gap: 12,
+                    gridTemplateColumns: isMobile
+                      ? "28px 1fr 70px"
+                      : "28px 1fr 130px 90px 32px",
+                    gap: isMobile ? 8 : 12,
                     alignItems: "center",
                     padding: "12px 14px",
                     background: pal.surfaceAlt,
@@ -337,12 +395,14 @@ export default function ExamResult() {
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{w.topic}</div>
                     <div style={{ fontSize: 11, color: pal.muted }}>{w.domain}</div>
                   </div>
-                  <Progress
-                    value={w.mastery}
-                    pal={pal}
-                    color={w.mastery < 35 ? pal.bad : pal.accent}
-                    height={6}
-                  />
+                  {!isMobile && (
+                    <Progress
+                      value={w.mastery}
+                      pal={pal}
+                      color={w.mastery < 35 ? pal.bad : pal.accent}
+                      height={6}
+                    />
+                  )}
                   <span
                     style={{
                       fontSize: 12,
@@ -354,7 +414,7 @@ export default function ExamResult() {
                   >
                     +{w.impact.toFixed(1)} {t("ball")}
                   </span>
-                  <Icon name="chev-right" size={16} color={pal.muted} />
+                  {!isMobile && <Icon name="chev-right" size={16} color={pal.muted} />}
                 </div>
               ))}
             </div>
@@ -455,7 +515,9 @@ export default function ExamResult() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "60px 1fr 100px 100px 100px 100px",
+              gridTemplateColumns: isMobile
+                ? "44px 1fr 70px 70px"
+                : "60px 1fr 100px 100px 100px 100px",
               padding: "10px 22px",
               borderBottom: `1px solid ${pal.line}`,
               fontSize: 10,
@@ -468,8 +530,8 @@ export default function ExamResult() {
             <span>#</span>
             <span>{t("Topic")}</span>
             <span>{t("Yours")}</span>
-            <span>{t("Correct")}</span>
-            <span>{t("Time")}</span>
+            {!isMobile && <span>{t("Correct")}</span>}
+            {!isMobile && <span>{t("Time")}</span>}
             <span style={{ textAlign: "right" }}>{t("Action")}</span>
           </div>
           {result.breakdown.map((b, i, arr) => (
@@ -477,7 +539,9 @@ export default function ExamResult() {
               key={b.qIndex}
               style={{
                 display: "grid",
-                gridTemplateColumns: "60px 1fr 100px 100px 100px 100px",
+                gridTemplateColumns: isMobile
+                ? "44px 1fr 70px 70px"
+                : "60px 1fr 100px 100px 100px 100px",
                 padding: "12px 22px",
                 alignItems: "center",
                 borderBottom: i < arr.length - 1 ? `1px solid ${pal.line}` : "none",
@@ -509,24 +573,28 @@ export default function ExamResult() {
                   stroke={2.5}
                 />
               </span>
-              <span
-                style={{
-                  color: pal.primary,
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontWeight: 700,
-                }}
-              >
-                {b.correctAnswer}
-              </span>
-              <span
-                style={{
-                  color: pal.muted,
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: 12,
-                }}
-              >
-                {(b.timeSpentMs / 1000).toFixed(0)}s
-              </span>
+              {!isMobile && (
+                <span
+                  style={{
+                    color: pal.primary,
+                    fontFamily: '"JetBrains Mono", monospace',
+                    fontWeight: 700,
+                  }}
+                >
+                  {b.correctAnswer}
+                </span>
+              )}
+              {!isMobile && (
+                <span
+                  style={{
+                    color: pal.muted,
+                    fontFamily: '"JetBrains Mono", monospace',
+                    fontSize: 12,
+                  }}
+                >
+                  {(b.timeSpentMs / 1000).toFixed(0)}s
+                </span>
+              )}
               <span style={{ textAlign: "right" }}>
                 {!b.correct ? (
                   <button
@@ -558,7 +626,7 @@ export default function ExamResult() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: isAtMostTablet ? "1fr" : "1fr 1fr 1fr",
             gap: 12,
             marginBottom: 16,
           }}

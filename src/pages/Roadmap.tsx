@@ -3,6 +3,7 @@ import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Btn, Card, Pill, Progress } from "@/components/ui/Primitives";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 
 type NodeState = "done" | "active" | "locked";
 type NodeMeta = "event" | "checkpoint" | "goal" | undefined;
@@ -20,6 +21,8 @@ type RNode = {
 
 export default function Roadmap() {
   const t = useT();
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
 
   const nodes: RNode[] = [
     { id: "diag", week: 0, row: 1, name: t("Diagnostic"), mastery: 100, state: "done", meta: "event" },
@@ -74,11 +77,13 @@ export default function Roadmap() {
       {/* Top */}
       <div
         style={{
-          padding: "20px 32px",
+          padding: isMobile ? "14px 16px" : "20px 32px",
           borderBottom: `1px solid ${pal.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
         <div>
@@ -118,12 +123,13 @@ export default function Roadmap() {
       {/* Progress strip */}
       <div
         style={{
-          padding: "14px 32px",
+          padding: isMobile ? "12px 16px" : "14px 32px",
           background: pal.surface,
           borderBottom: `1px solid ${pal.line}`,
           display: "grid",
           gridTemplateColumns: "repeat(7, 1fr)",
           gap: 8,
+          overflowX: "auto",
         }}
       >
         {[
@@ -376,9 +382,9 @@ export default function Roadmap() {
       {/* Legend & details */}
       <div
         style={{
-          padding: "0 32px 32px",
+          padding: isMobile ? "0 16px 24px" : "0 32px 32px",
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateColumns: isAtMostTablet ? "1fr" : "1fr 1fr 1fr",
           gap: 16,
         }}
       >

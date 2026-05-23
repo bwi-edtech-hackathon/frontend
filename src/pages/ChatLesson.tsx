@@ -2,9 +2,12 @@ import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Btn, Card, MathPill, Pill, Progress } from "@/components/ui/Primitives";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 
 export default function ChatLesson() {
   const t = useT();
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
 
   const sessions = [
     {
@@ -40,15 +43,15 @@ export default function ChatLesson() {
   ];
 
   return (
-    <div style={{ display: "flex", height: "100%" }}>
-      {/* Sessions left rail */}
+    <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
+      {/* Sessions left rail — hidden on small screens */}
       <div
         style={{
           width: 260,
           background: pal.surface,
           borderRight: `1px solid ${pal.line}`,
           padding: 16,
-          display: "flex",
+          display: isAtMostTablet ? "none" : "flex",
           flexDirection: "column",
           gap: 8,
           overflow: "auto",
@@ -146,12 +149,13 @@ export default function ChatLesson() {
       >
         <div
           style={{
-            padding: "14px 28px",
+            padding: isMobile ? "10px 14px" : "14px 28px",
             borderBottom: `1px solid ${pal.line}`,
             background: pal.surface,
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: isMobile ? 8 : 16,
+            flexWrap: "wrap",
           }}
         >
           <div style={{ flex: 1 }}>
@@ -174,37 +178,41 @@ export default function ChatLesson() {
               {t("Quadratic equations")}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Progress
-              value={70}
-              pal={pal}
-              height={6}
-              color={pal.primary}
-              style={{ width: 140 }}
-            />
-            <span
-              style={{
-                fontSize: 12,
-                color: pal.muted,
-                fontFamily: '"JetBrains Mono", monospace',
-              }}
-            >
-              70%
-            </span>
-          </div>
+          {!isMobile && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Progress
+                value={70}
+                pal={pal}
+                height={6}
+                color={pal.primary}
+                style={{ width: 140 }}
+              />
+              <span
+                style={{
+                  fontSize: 12,
+                  color: pal.muted,
+                  fontFamily: '"JetBrains Mono", monospace',
+                }}
+              >
+                70%
+              </span>
+            </div>
+          )}
           <Btn pal={pal} tone="soft" size="sm">
             {t("I get it")}
           </Btn>
-          <Btn pal={pal} tone="outline" size="sm">
-            {t("End session")}
-          </Btn>
+          {!isMobile && (
+            <Btn pal={pal} tone="outline" size="sm">
+              {t("End session")}
+            </Btn>
+          )}
         </div>
 
         <div
           style={{
             flex: 1,
             overflow: "auto",
-            padding: "32px 80px",
+            padding: isMobile ? "20px 14px" : "32px 80px",
           }}
         >
           <div
@@ -382,7 +390,7 @@ export default function ChatLesson() {
         {/* Input */}
         <div
           style={{
-            padding: "14px 28px 22px",
+            padding: isMobile ? "10px 14px 16px" : "14px 28px 22px",
             borderTop: `1px solid ${pal.line}`,
             background: pal.surface,
           }}
@@ -453,7 +461,7 @@ export default function ChatLesson() {
         </div>
       </main>
 
-      {/* Right rail */}
+      {/* Right rail — hidden on small screens */}
       <div
         style={{
           width: 280,
@@ -461,6 +469,7 @@ export default function ChatLesson() {
           borderLeft: `1px solid ${pal.line}`,
           padding: 20,
           overflow: "auto",
+          display: isAtMostTablet ? "none" : "block",
         }}
       >
         <div

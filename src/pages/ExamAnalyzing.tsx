@@ -4,9 +4,10 @@ import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Primitives";
-import { getExamResult } from "@/lib/api";
+import { getExamResult, type SubjectCode } from "@/lib/api";
+import { examModeFromPath, examSubPath } from "@/lib/examMode";
 
-type LocationState = { sessionId?: string; auto?: boolean };
+type LocationState = { sessionId?: string; auto?: boolean; subject?: SubjectCode };
 
 type Stage = {
   key: string;
@@ -21,6 +22,7 @@ export default function ExamAnalyzing() {
   const navigate = useNavigate();
   const state = (location.state ?? {}) as LocationState;
   const sessionId = state.sessionId ?? "pending";
+  const mode = examModeFromPath(location.pathname);
 
   const STAGES = useMemo<Stage[]>(
     () => [
@@ -58,9 +60,9 @@ export default function ExamAnalyzing() {
 
     Promise.all([fetchPromise, animPromise]).then(([result]) => {
       if (cancelled) return;
-      navigate("/app/exam/result", {
+      navigate(examSubPath(mode, "result"), {
         replace: true,
-        state: { sessionId, result },
+        state: { sessionId, result, subject: state.subject, mode },
       });
     });
 
@@ -68,7 +70,7 @@ export default function ExamAnalyzing() {
       cancelled = true;
       timers.forEach(window.clearTimeout);
     };
-  }, [navigate, sessionId, STAGES]);
+  }, [navigate, sessionId, STAGES, mode, state.subject]);
 
   const progress = Math.min(100, (stageIdx / STAGES.length) * 100);
 

@@ -9,12 +9,23 @@ import ExamResult from "@/pages/ExamResult";
 import ChatLesson from "@/pages/ChatLesson";
 import Battle from "@/pages/Battle";
 import Leaderboard from "@/pages/Leaderboard";
+import QuickExamStart from "@/pages/QuickExamStart";
 import { AppShell } from "@/components/app/AppShell";
+import { QuickExamShell } from "@/components/app/QuickExamShell";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+
+      {/* Quick exam — no login, no sidebar */}
+      <Route element={<QuickExamShell />}>
+        <Route path="/quick-exam/:subject" element={<QuickExamStart />} />
+        <Route path="/quick-exam/active" element={<ExamActive />} />
+        <Route path="/quick-exam/analyzing" element={<ExamAnalyzing />} />
+        <Route path="/quick-exam/result" element={<ExamResult />} />
+      </Route>
+
       <Route element={<AppShell />}>
         <Route path="/app" element={<Dashboard />} />
         <Route path="/app/roadmap" element={<Roadmap />} />

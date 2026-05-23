@@ -18,16 +18,19 @@ function SidebarItem({
   label,
   active,
   badge,
+  onClick,
 }: {
   to: string;
   icon: IconName;
   label: string;
   active: boolean;
   badge?: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       to={to}
+      onClick={onClick}
       style={{
         textDecoration: "none",
         display: "flex",
@@ -62,7 +65,7 @@ function SidebarItem({
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const t = useT();
   const { pathname } = useLocation();
 
@@ -131,6 +134,7 @@ export function Sidebar() {
           label={it.label}
           active={it.match(pathname)}
           badge={it.badge}
+          onClick={onNavigate}
         />
       ))}
       <div style={{ flex: 1 }} />
@@ -140,6 +144,7 @@ export function Sidebar() {
         icon="user"
         label={t("Diana M.")}
         active={false}
+        onClick={onNavigate}
       />
     </aside>
   );

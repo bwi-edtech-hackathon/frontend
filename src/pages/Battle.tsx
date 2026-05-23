@@ -2,20 +2,25 @@ import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar, Btn, Card, Pill } from "@/components/ui/Primitives";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 
 export default function Battle() {
   const t = useT();
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
 
   return (
     <div>
       {/* Topbar */}
       <div
         style={{
-          padding: "20px 32px",
+          padding: isMobile ? "14px 16px" : "20px 32px",
           borderBottom: `1px solid ${pal.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
         <div>
@@ -53,9 +58,9 @@ export default function Battle() {
 
       <div
         style={{
-          padding: "24px 32px",
+          padding: isMobile ? "16px" : "24px 32px",
           display: "grid",
-          gridTemplateColumns: "1.4fr 1fr",
+          gridTemplateColumns: isAtMostTablet ? "1fr" : "1.4fr 1fr",
           gap: 20,
         }}
       >
@@ -117,7 +122,7 @@ export default function Battle() {
                 filter: "blur(40px)",
               }}
             />
-            <div style={{ position: "relative", padding: 32 }}>
+            <div style={{ position: "relative", padding: isMobile ? 20 : 32 }}>
               <div
                 style={{
                   fontSize: 11,
@@ -131,7 +136,7 @@ export default function Battle() {
               </div>
               <div
                 style={{
-                  fontSize: 40,
+                  fontSize: isMobile ? 26 : 40,
                   fontWeight: 800,
                   letterSpacing: "-0.035em",
                   marginTop: 8,
@@ -206,7 +211,7 @@ export default function Battle() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
               gap: 12,
             }}
           >
@@ -372,10 +377,12 @@ export default function Battle() {
                 key={i}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "40px 1fr 100px 80px 60px 60px",
+                  gridTemplateColumns: isMobile
+                    ? "36px 1fr 60px"
+                    : "40px 1fr 100px 80px 60px 60px",
                   alignItems: "center",
                   gap: 10,
-                  padding: "14px 22px",
+                  padding: isMobile ? "12px 14px" : "14px 22px",
                   borderBottom:
                     i < arr.length - 1 ? `1px solid ${pal.line}` : "none",
                 }}
@@ -387,36 +394,41 @@ export default function Battle() {
                     {b.subj} · {b.ago}
                   </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: pal.muted,
-                    fontFamily: '"JetBrains Mono", monospace',
-                  }}
-                >
-                  {b.score}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: pal.muted,
-                    fontFamily: '"JetBrains Mono", monospace',
-                  }}
-                >
-                  {b.result}
-                </div>
+                {!isMobile && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: pal.muted,
+                      fontFamily: '"JetBrains Mono", monospace',
+                    }}
+                  >
+                    {b.score}
+                  </div>
+                )}
+                {!isMobile && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: pal.muted,
+                      fontFamily: '"JetBrains Mono", monospace',
+                    }}
+                  >
+                    {b.result}
+                  </div>
+                )}
                 <span
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
                     color: b.won ? pal.good : pal.bad,
                     fontFamily: '"JetBrains Mono", monospace',
+                    textAlign: isMobile ? "right" : "left",
                   }}
                 >
                   {b.won ? "+" : ""}
                   {b.delta}
                 </span>
-                <Icon name="chev-right" size={16} color={pal.muted} />
+                {!isMobile && <Icon name="chev-right" size={16} color={pal.muted} />}
               </div>
             ))}
           </Card>

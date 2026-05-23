@@ -20,11 +20,18 @@ import {
   type ExamState,
 } from "@/lib/examState";
 import { useExamTimer } from "@/hooks/useExamTimer";
-import { createExamSession, saveAnswer, submitExam, type ExamSession } from "@/lib/api";
+import { createExamSession, saveAnswer, submitExam, type ExamSession, type SubjectCode } from "@/lib/api";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
+import {
+  examModeFromPath,
+  examSubPath,
+  exitPathFor,
+  labelForSubject,
+} from "@/lib/examMode";
 
 type Tool = "calc" | "formula" | "scratch";
 
-type LocationState = { sessionId?: string };
+type LocationState = { sessionId?: string; subject?: SubjectCode; mode?: "quick" | "app" };
 
 export default function ExamActive() {
   const t = useT();
@@ -42,6 +49,15 @@ export default function ExamActive() {
   const [submitting, setSubmitting] = useState(false);
   const autoSubmitFired = useRef(false);
 
+  const mode = examModeFromPath(location.pathname);
+  const subject: SubjectCode = navState?.subject ?? "MATH";
+  const subjectLabel = labelForSubject(subject);
+
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   // Boot: ensure we have an exam state (timer) and a session (questions).
   useEffect(() => {
     let live = true;
@@ -51,9 +67,7 @@ export default function ExamActive() {
       if (live) setExam(s);
     }
     (async () => {
-      const ses = navState?.sessionId
-        ? await createExamSession("MATH") // backend would GET existing; sample creates new
-        : await createExamSession("MATH");
+      const ses = await createExamSession(subject);
       if (live) setSession(ses);
     })();
 
@@ -90,15 +104,15 @@ export default function ExamActive() {
         if (exam) {
           persist({ ...exam, finishedAt: Date.now() });
         }
-        navigate("/app/exam/analyzing", {
-          state: { sessionId: sid, auto: isAuto },
+        navigate(examSubPath(mode, "analyzing"), {
+          state: { sessionId: sid, auto: isAuto, subject, mode },
         });
       } catch {
         setSubmitting(false);
         toast.error(t("Could not submit exam. Try again."));
       }
     },
-    [exam, navigate, persist, session, submitting, t],
+    [exam, mode, navigate, persist, session, subject, submitting, t],
   );
 
   const onExpire = useCallback(() => {
@@ -162,7 +176,7 @@ export default function ExamActive() {
   const exit = () => {
     if (!confirm(t("Exit and discard this attempt? Your answers will be lost."))) return;
     clearExam();
-    navigate("/app/exam");
+    navigate(exitPathFor(mode));
   };
 
   // Tool toggles
@@ -218,23 +232,24 @@ export default function ExamActive() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: "100vh" }}>
       {/* Top bar */}
       <div
         style={{
-          padding: "14px 28px",
+          padding: isMobile ? "10px 14px" : "14px 28px",
           background: pal.surface,
           borderBottom: `1px solid ${pal.line}`,
           display: "flex",
           alignItems: "center",
-          gap: 20,
+          gap: isMobile ? 8 : 20,
+          flexWrap: "wrap",
         }}
       >
         <Logo pal={pal} size={16} />
         <div style={{ width: 1, height: 24, background: pal.line }} />
         <div>
           <div style={{ fontSize: 11, color: pal.muted, letterSpacing: "0.04em" }}>
-            {t("Full Mock #8")}
+            {mode === "quick" ? t("Quick mock") : t("Full Mock #8")}
           </div>
           <div
             style={{
@@ -243,39 +258,41 @@ export default function ExamActive() {
               letterSpacing: "-0.015em",
             }}
           >
-            {t("Mathematics")} · {t("BMBA format")}
+            {t(subjectLabel)} · {t("BMBA format")}
           </div>
         </div>
 
         <div style={{ flex: 1 }} />
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 11,
-            color: pal.muted,
-          }}
-        >
+        {!isMobile && (
           <div
             style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: pal.good,
-              boxShadow: `0 0 0 3px ${pal.good}20`,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11,
+              color: pal.muted,
             }}
-          />
-          {t("Auto-saved")}
-        </div>
+          >
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: pal.good,
+                boxShadow: `0 0 0 3px ${pal.good}20`,
+              }}
+            />
+            {t("Auto-saved")}
+          </div>
+        )}
 
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            padding: "6px 16px",
+            gap: isMobile ? 6 : 10,
+            padding: isMobile ? "4px 10px" : "6px 16px",
             background: timerBg,
             color: timerInk,
             borderRadius: 20,
@@ -311,16 +328,16 @@ export default function ExamActive() {
         <Btn
           pal={pal}
           tone="outline"
-          size="md"
+          size={isMobile ? "sm" : "md"}
           onClick={exit}
           icon={<Icon name="x" size={14} />}
         >
-          {t("Exit")}
+          {isMobile ? "" : t("Exit")}
         </Btn>
         <Btn
           pal={pal}
           tone="accent"
-          size="md"
+          size={isMobile ? "sm" : "md"}
           icon={<Icon name="flag" size={14} />}
           onClick={() => {
             if (confirm(`${t("Submit exam")}: ${counts.answered}/${TOTAL_Q} ${t("Answered")}?`)) {
@@ -328,8 +345,30 @@ export default function ExamActive() {
             }
           }}
         >
-          {t("Submit exam")}
+          {isMobile ? t("Submit") : t("Submit exam")}
         </Btn>
+        {isAtMostTablet && (
+          <Btn
+            pal={pal}
+            tone="outline"
+            size={isMobile ? "sm" : "md"}
+            onClick={() => setPaletteOpen(true)}
+            icon={<Icon name="book" size={14} />}
+          >
+            {isMobile ? "" : t("Questions")}
+          </Btn>
+        )}
+        {isAtMostTablet && (
+          <Btn
+            pal={pal}
+            tone="outline"
+            size={isMobile ? "sm" : "md"}
+            onClick={() => setSheetOpen(true)}
+            icon={<Icon name="bolt" size={14} />}
+          >
+            {isMobile ? "" : t("Tools")}
+          </Btn>
+        )}
       </div>
 
       {minsLeft <= 5 && (
@@ -348,24 +387,71 @@ export default function ExamActive() {
         </div>
       )}
 
-      {/* Body — 3 columns */}
+      {/* Body — 3 columns on desktop, single column on small screens */}
       <div
         style={{
           flex: 1,
           display: "grid",
-          gridTemplateColumns: "260px 1fr 280px",
+          gridTemplateColumns: isAtMostTablet ? "1fr" : "260px 1fr 280px",
           overflow: "hidden",
         }}
       >
         {/* LEFT — Question palette */}
         <div
-          style={{
-            background: pal.surface,
-            borderRight: `1px solid ${pal.line}`,
-            overflow: "auto",
-            padding: "20px 18px",
-          }}
+          style={
+            isAtMostTablet
+              ? {
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  bottom: 0,
+                  width: "min(320px, 90vw)",
+                  background: pal.surface,
+                  borderRight: `1px solid ${pal.line}`,
+                  overflow: "auto",
+                  padding: "20px 18px",
+                  zIndex: 60,
+                  transform: paletteOpen ? "translateX(0)" : "translateX(-100%)",
+                  transition: "transform 0.25s ease",
+                  boxShadow: paletteOpen ? "0 24px 60px rgba(0,0,0,0.18)" : "none",
+                }
+              : {
+                  background: pal.surface,
+                  borderRight: `1px solid ${pal.line}`,
+                  overflow: "auto",
+                  padding: "20px 18px",
+                }
+          }
         >
+          {isAtMostTablet && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: 8,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: pal.muted,
+                  cursor: "pointer",
+                  padding: 6,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                }}
+              >
+                <Icon name="x" size={14} />
+                {t("Close")}
+              </button>
+            </div>
+          )}
           <div
             style={{
               fontSize: 11,
@@ -576,16 +662,18 @@ export default function ExamActive() {
         </div>
 
         {/* CENTER — Question */}
-        <div style={{ overflow: "auto", padding: "32px 48px" }}>
+        <div style={{ overflow: "auto", padding: isMobile ? "20px 16px" : "32px 48px" }}>
           <div
             style={{
               display: "flex",
-              alignItems: "baseline",
+              alignItems: isMobile ? "flex-start" : "baseline",
               justifyContent: "space-between",
               marginBottom: 14,
+              flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? 8 : 0,
             }}
           >
-            <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
               <span
                 style={{
                   fontSize: 11,
@@ -800,13 +888,60 @@ export default function ExamActive() {
 
         {/* RIGHT — Answer sheet + tools */}
         <div
-          style={{
-            background: pal.surface,
-            borderLeft: `1px solid ${pal.line}`,
-            overflow: "auto",
-            padding: "20px 18px",
-          }}
+          style={
+            isAtMostTablet
+              ? {
+                  position: "fixed",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: "min(320px, 90vw)",
+                  background: pal.surface,
+                  borderLeft: `1px solid ${pal.line}`,
+                  overflow: "auto",
+                  padding: "20px 18px",
+                  zIndex: 60,
+                  transform: sheetOpen ? "translateX(0)" : "translateX(100%)",
+                  transition: "transform 0.25s ease",
+                  boxShadow: sheetOpen ? "0 24px 60px rgba(0,0,0,0.18)" : "none",
+                }
+              : {
+                  background: pal.surface,
+                  borderLeft: `1px solid ${pal.line}`,
+                  overflow: "auto",
+                  padding: "20px 18px",
+                }
+          }
         >
+          {isAtMostTablet && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: 8,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setSheetOpen(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: pal.muted,
+                  cursor: "pointer",
+                  padding: 6,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                }}
+              >
+                <Icon name="x" size={14} />
+                {t("Close")}
+              </button>
+            </div>
+          )}
           <div
             style={{
               fontSize: 11,
@@ -971,6 +1106,22 @@ export default function ExamActive() {
           </div>
         </div>
       </div>
+
+      {/* Drawer backdrop */}
+      {isAtMostTablet && (paletteOpen || sheetOpen) && (
+        <div
+          onClick={() => {
+            setPaletteOpen(false);
+            setSheetOpen(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 55,
+          }}
+        />
+      )}
 
       {/* Floating tool panels */}
       {tools.calc && <Calculator onClose={() => toggleTool("calc")} />}

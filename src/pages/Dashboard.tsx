@@ -4,9 +4,12 @@ import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar, Btn, Card, Pill, Progress } from "@/components/ui/Primitives";
 import { LangSwitcher } from "@/components/app/LangSwitcher";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 
 export default function Dashboard() {
   const t = useT();
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
 
   const kpis = [
     {
@@ -45,12 +48,14 @@ export default function Dashboard() {
       {/* Topbar */}
       <div
         style={{
-          padding: "20px 32px",
+          padding: isMobile ? "14px 16px" : "20px 32px",
           borderBottom: `1px solid ${pal.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           background: pal.bg,
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
         <div>
@@ -68,35 +73,37 @@ export default function Dashboard() {
             {t("Good evening, Diana")}
           </h1>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 12px",
-              borderRadius: 999,
-              background: pal.surface,
-              border: `1px solid ${pal.line}`,
-            }}
-          >
-            <Icon name="search" size={14} color={pal.muted} />
-            <span style={{ fontSize: 12, color: pal.muted }}>
-              {t("Search topics…")}
-            </span>
-            <span
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {!isMobile && (
+            <div
               style={{
-                fontSize: 10,
-                color: pal.muted,
-                padding: "1px 6px",
-                borderRadius: 4,
-                background: pal.surfaceAlt,
-                fontFamily: '"JetBrains Mono", monospace',
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 12px",
+                borderRadius: 999,
+                background: pal.surface,
+                border: `1px solid ${pal.line}`,
               }}
             >
-              ⌘K
-            </span>
-          </div>
+              <Icon name="search" size={14} color={pal.muted} />
+              <span style={{ fontSize: 12, color: pal.muted }}>
+                {t("Search topics…")}
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: pal.muted,
+                  padding: "1px 6px",
+                  borderRadius: 4,
+                  background: pal.surfaceAlt,
+                  fontFamily: '"JetBrains Mono", monospace',
+                }}
+              >
+                ⌘K
+              </span>
+            </div>
+          )}
           <Pill
             pal={pal}
             tone="accentSoft"
@@ -124,9 +131,9 @@ export default function Dashboard() {
 
       <div
         style={{
-          padding: "24px 32px",
+          padding: isMobile ? "16px" : "24px 32px",
           display: "grid",
-          gridTemplateColumns: "1fr 340px",
+          gridTemplateColumns: isAtMostTablet ? "1fr" : "1fr 340px",
           gap: 20,
         }}
       >
@@ -135,7 +142,11 @@ export default function Dashboard() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
+              gridTemplateColumns: isMobile
+                ? "repeat(2, 1fr)"
+                : isAtMostTablet
+                  ? "repeat(4, 1fr)"
+                  : "repeat(4, 1fr)",
               gap: 12,
             }}
           >
@@ -405,7 +416,7 @@ export default function Dashboard() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
               gap: 12,
             }}
           >

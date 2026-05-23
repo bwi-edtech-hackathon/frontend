@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
@@ -11,9 +12,27 @@ import {
   Ring,
 } from "@/components/ui/Primitives";
 import { LangSwitcher } from "@/components/app/LangSwitcher";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
+import { slugForSubject } from "@/lib/examMode";
+import type { SubjectCode } from "@/lib/api";
+
+const QUICK_SUBJECTS: { code: SubjectCode; label: string }[] = [
+  { code: "MATH", label: "Mathematics" },
+  { code: "PHYS", label: "Physics" },
+  { code: "CHEM", label: "Chemistry" },
+  { code: "BIO", label: "Biology" },
+  { code: "HIST", label: "History" },
+  { code: "GEOG", label: "Geography" },
+  { code: "UZB_LIT", label: "Uzbek lit" },
+  { code: "RUS_LIT", label: "Russian lit" },
+  { code: "KAR_LIT", label: "Karakalpak" },
+];
 
 export default function Landing() {
   const t = useT();
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
     <div
@@ -28,44 +47,101 @@ export default function Landing() {
       {/* Top nav */}
       <nav
         style={{
-          padding: "18px 48px",
+          padding: isMobile ? "14px 16px" : "18px 48px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           borderBottom: `1px solid ${pal.line}`,
+          gap: 12,
         }}
       >
-        <Logo pal={pal} size={20} />
+        <Logo pal={pal} size={isMobile ? 18 : 20} />
+        {!isAtMostTablet ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 28,
+              fontSize: 13,
+              color: pal.muted,
+              fontWeight: 500,
+            }}
+          >
+            <span>{t("How it works")}</span>
+            <span>{t("Mock exams")}</span>
+            <span>{t("Pricing")}</span>
+            <span style={{ color: pal.text }}>{t("Sign in")}</span>
+            <LangSwitcher />
+            <Link to="/app" style={{ textDecoration: "none" }}>
+              <Btn pal={pal} tone="primary" size="sm">
+                {t("Start free")}
+              </Btn>
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <LangSwitcher />
+            <button
+              type="button"
+              aria-label="Open menu"
+              onClick={() => setNavOpen((v) => !v)}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                border: `1px solid ${pal.line}`,
+                background: pal.surface,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon name={navOpen ? "x" : "menu"} size={18} />
+            </button>
+          </div>
+        )}
+      </nav>
+
+      {isAtMostTablet && navOpen && (
         <div
           style={{
+            padding: "14px 16px 18px",
+            borderBottom: `1px solid ${pal.line}`,
+            background: pal.surface,
             display: "flex",
-            alignItems: "center",
-            gap: 28,
-            fontSize: 13,
-            color: pal.muted,
-            fontWeight: 500,
+            flexDirection: "column",
+            gap: 10,
           }}
         >
-          <span>{t("How it works")}</span>
-          <span>{t("Mock exams")}</span>
-          <span>{t("Pricing")}</span>
-          <span style={{ color: pal.text }}>{t("Sign in")}</span>
-          <LangSwitcher />
+          {[t("How it works"), t("Mock exams"), t("Pricing"), t("Sign in")].map((label) => (
+            <span
+              key={label}
+              style={{
+                fontSize: 15,
+                fontWeight: 500,
+                color: pal.text,
+                padding: "8px 4px",
+              }}
+            >
+              {label}
+            </span>
+          ))}
           <Link to="/app" style={{ textDecoration: "none" }}>
-            <Btn pal={pal} tone="primary" size="sm">
+            <Btn pal={pal} tone="primary" size="md" full>
               {t("Start free")}
             </Btn>
           </Link>
         </div>
-      </nav>
+      )}
 
       {/* Hero */}
       <section
         style={{
-          padding: "60px 48px 40px",
+          padding: isMobile ? "32px 16px 28px" : "60px 48px 40px",
           display: "grid",
-          gridTemplateColumns: "1.1fr 1fr",
-          gap: 48,
+          gridTemplateColumns: isAtMostTablet ? "1fr" : "1.1fr 1fr",
+          gap: isMobile ? 28 : 48,
           alignItems: "center",
         }}
       >
@@ -76,7 +152,7 @@ export default function Landing() {
           <h1
             style={{
               margin: 0,
-              fontSize: 64,
+              fontSize: isMobile ? 38 : 64,
               lineHeight: 0.98,
               letterSpacing: "-0.04em",
               fontWeight: 800,
@@ -88,7 +164,7 @@ export default function Landing() {
           <p
             style={{
               marginTop: 22,
-              fontSize: 17,
+              fontSize: isMobile ? 15 : 17,
               lineHeight: 1.5,
               color: pal.muted,
               maxWidth: 480,
@@ -98,7 +174,7 @@ export default function Landing() {
               "A diagnostic that finds your weak topics in 30 minutes. A roadmap that rewrites itself after every mock. A Socratic coach when you're stuck. And ranked battles when you're bored.",
             )}
           </p>
-          <div style={{ marginTop: 28, display: "flex", gap: 10 }}>
+          <div style={{ marginTop: 28, display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link to="/app" style={{ textDecoration: "none" }}>
               <Btn
                 pal={pal}
@@ -150,7 +226,13 @@ export default function Landing() {
         </div>
 
         {/* Hero visual */}
-        <div style={{ position: "relative", height: 480 }}>
+        <div
+          style={{
+            position: "relative",
+            height: isMobile ? 380 : 480,
+            display: isMobile ? "none" : "block",
+          }}
+        >
           <div
             style={{
               position: "absolute",
@@ -330,10 +412,14 @@ export default function Landing() {
         style={{
           background: pal.text,
           color: pal.surface,
-          padding: "36px 48px",
+          padding: isMobile ? "28px 16px" : "36px 48px",
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 32,
+          gridTemplateColumns: isMobile
+            ? "repeat(2, 1fr)"
+            : isAtMostTablet
+              ? "repeat(2, 1fr)"
+              : "repeat(4, 1fr)",
+          gap: isMobile ? 20 : 32,
         }}
       >
         {[
@@ -348,7 +434,7 @@ export default function Landing() {
           <div key={i}>
             <div
               style={{
-                fontSize: 36,
+                fontSize: isMobile ? 28 : 36,
                 fontWeight: 800,
                 letterSpacing: "-0.03em",
                 fontFamily: '"JetBrains Mono", monospace',
@@ -373,7 +459,7 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section style={{ padding: "80px 48px" }}>
+      <section style={{ padding: isMobile ? "44px 16px" : "80px 48px" }}>
         <div style={{ marginBottom: 40 }}>
           <Pill pal={pal} tone="outline" style={{ marginBottom: 12 }}>
             {t("What's inside")}
@@ -381,7 +467,7 @@ export default function Landing() {
           <h2
             style={{
               margin: 0,
-              fontSize: 44,
+              fontSize: isMobile ? 30 : 44,
               letterSpacing: "-0.035em",
               fontWeight: 800,
               maxWidth: 600,
@@ -404,7 +490,7 @@ export default function Landing() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
+            gridTemplateColumns: isAtMostTablet ? "1fr" : "repeat(2, 1fr)",
             gap: 16,
           }}
         >
@@ -663,11 +749,11 @@ export default function Landing() {
       </section>
 
       {/* How it works */}
-      <section style={{ padding: "40px 48px 80px" }}>
+      <section style={{ padding: isMobile ? "32px 16px 48px" : "40px 48px 80px" }}>
         <h2
           style={{
             margin: "0 0 28px",
-            fontSize: 32,
+            fontSize: isMobile ? 24 : 32,
             letterSpacing: "-0.03em",
             fontWeight: 700,
           }}
@@ -677,24 +763,26 @@ export default function Landing() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 0,
+            gridTemplateColumns: isAtMostTablet ? "1fr" : "repeat(3, 1fr)",
+            gap: isAtMostTablet ? 22 : 0,
             position: "relative",
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              top: 24,
-              left: "16%",
-              right: "16%",
-              height: 2,
-              background: pal.line,
-              borderTop: `2px dashed ${pal.line}`,
-              borderRadius: 1,
-              zIndex: 0,
-            }}
-          />
+          {!isAtMostTablet && (
+            <div
+              style={{
+                position: "absolute",
+                top: 24,
+                left: "16%",
+                right: "16%",
+                height: 2,
+                background: pal.line,
+                borderTop: `2px dashed ${pal.line}`,
+                borderRadius: 1,
+                zIndex: 0,
+              }}
+            />
+          )}
           {[
             {
               n: "01",
@@ -763,50 +851,128 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Subjects */}
-      <section style={{ padding: "0 48px 60px" }}>
+      {/* Subjects — click a subject to start a quick mock without registration */}
+      <section
+        id="quick-mock"
+        style={{ padding: isMobile ? "0 16px 48px" : "0 48px 60px" }}
+      >
         <div
           style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: pal.muted,
-            marginBottom: 16,
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            marginBottom: 18,
           }}
         >
-          {t("All BMBA subjects")}
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {[
-            t("Mathematics"),
-            t("Physics"),
-            t("Chemistry"),
-            t("Biology"),
-            t("History"),
-            t("Geography"),
-            t("Uzbek lit"),
-            t("Russian lit"),
-            t("Karakalpak"),
-          ].map((s) => (
-            <Pill
-              key={s}
-              pal={pal}
-              tone="outline"
-              style={{ fontSize: 14, padding: "8px 16px" }}
+          <div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: pal.muted,
+                marginBottom: 6,
+              }}
             >
-              {s}
-            </Pill>
+              {t("Try a quick mock")}
+            </div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: isMobile ? 24 : 30,
+                letterSpacing: "-0.03em",
+                fontWeight: 800,
+                maxWidth: 540,
+              }}
+            >
+              {t("Pick a subject — no sign-up needed")}
+            </h2>
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontSize: 13,
+                color: pal.muted,
+                lineHeight: 1.5,
+                maxWidth: 520,
+              }}
+            >
+              {t(
+                "Jump straight into a timed mock exam to feel the format. We'll show your diagnostic at the end — register only if you want to save it.",
+              )}
+            </p>
+          </div>
+          <Pill pal={pal} tone="accentSoft" icon={<Icon name="bolt" size={12} />}>
+            {t("No registration")}
+          </Pill>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile
+              ? "repeat(2, minmax(0, 1fr))"
+              : isAtMostTablet
+                ? "repeat(3, minmax(0, 1fr))"
+                : "repeat(auto-fill, minmax(180px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {QUICK_SUBJECTS.map((s) => (
+            <Link
+              key={s.code}
+              to={`/quick-exam/${slugForSubject(s.code)}`}
+              style={{ textDecoration: "none" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  padding: "14px 16px",
+                  background: pal.surface,
+                  border: `1px solid ${pal.line}`,
+                  borderRadius: 14,
+                  color: pal.text,
+                  cursor: "pointer",
+                  transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                  minHeight: 56,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = pal.primary;
+                  e.currentTarget.style.boxShadow = `0 8px 24px ${pal.primary}1f`;
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = pal.line;
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                    {t(s.label)}
+                  </span>
+                  <span style={{ fontSize: 11, color: pal.muted }}>
+                    {t("Start mock")} · 5 min
+                  </span>
+                </div>
+                <Icon name="arrow-right" size={16} color={pal.primary} />
+              </div>
+            </Link>
           ))}
         </div>
       </section>
 
       {/* Pricing */}
-      <section style={{ padding: "40px 48px 80px" }}>
+      <section style={{ padding: isMobile ? "32px 16px 48px" : "40px 48px 80px" }}>
         <h2
           style={{
             margin: "0 0 28px",
-            fontSize: 32,
+            fontSize: isMobile ? 24 : 32,
             letterSpacing: "-0.03em",
             fontWeight: 700,
           }}
@@ -816,7 +982,7 @@ export default function Landing() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
+            gridTemplateColumns: isAtMostTablet ? "1fr" : "repeat(3, 1fr)",
             gap: 14,
           }}
         >
@@ -936,12 +1102,14 @@ export default function Landing() {
       <footer
         style={{
           borderTop: `1px solid ${pal.line}`,
-          padding: "36px 48px",
+          padding: isMobile ? "24px 16px" : "36px 48px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           color: pal.muted,
           fontSize: 12,
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
         <Logo pal={pal} size={16} />

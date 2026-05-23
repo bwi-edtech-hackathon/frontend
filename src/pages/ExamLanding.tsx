@@ -7,6 +7,7 @@ import { Btn, Card, Pill } from "@/components/ui/Primitives";
 import { LangSwitcher } from "@/components/app/LangSwitcher";
 import { createExamSession, type SubjectCode } from "@/lib/api";
 import { startExam } from "@/lib/examState";
+import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 
 const SUBJECTS: { code: SubjectCode; label: string }[] = [
   { code: "MATH", label: "Mathematics" },
@@ -22,6 +23,8 @@ export default function ExamLanding() {
   const navigate = useNavigate();
   const [subject, setSubject] = useState<SubjectCode>("MATH");
   const [starting, setStarting] = useState(false);
+  const isMobile = useIsMobile();
+  const isAtMostTablet = useIsAtMostTablet();
 
   const start = async () => {
     if (starting) return;
@@ -29,7 +32,7 @@ export default function ExamLanding() {
     try {
       const session = await createExamSession(subject);
       startExam(session.durationMs);
-      navigate("/app/exam/active", { state: { sessionId: session.id, subject } });
+      navigate("/app/exam/active", { state: { sessionId: session.id, subject, mode: "app" } });
     } catch {
       setStarting(false);
     }
@@ -40,11 +43,12 @@ export default function ExamLanding() {
       {/* Topbar */}
       <div
         style={{
-          padding: "20px 32px",
+          padding: isMobile ? "14px 16px" : "20px 32px",
           borderBottom: `1px solid ${pal.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 12,
         }}
       >
         <div>
@@ -67,9 +71,9 @@ export default function ExamLanding() {
 
       <div
         style={{
-          padding: "24px 32px",
+          padding: isMobile ? "16px" : "24px 32px",
           display: "grid",
-          gridTemplateColumns: "1.4fr 1fr",
+          gridTemplateColumns: isAtMostTablet ? "1fr" : "1.4fr 1fr",
           gap: 20,
         }}
       >
@@ -99,7 +103,7 @@ export default function ExamLanding() {
                 filter: "blur(40px)",
               }}
             />
-            <div style={{ position: "relative", padding: 32 }}>
+            <div style={{ position: "relative", padding: isMobile ? 22 : 32 }}>
               <Pill
                 pal={pal}
                 tone="accent"
@@ -110,7 +114,7 @@ export default function ExamLanding() {
               </Pill>
               <div
                 style={{
-                  fontSize: 38,
+                  fontSize: isMobile ? 26 : 38,
                   fontWeight: 800,
                   letterSpacing: "-0.035em",
                   lineHeight: 1.05,
@@ -137,7 +141,7 @@ export default function ExamLanding() {
                 style={{
                   marginTop: 24,
                   display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
                   gap: 14,
                   maxWidth: 540,
                 }}
