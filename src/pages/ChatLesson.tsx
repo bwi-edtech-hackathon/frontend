@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Btn, Card, MathPill, Pill, Progress } from "@/components/ui/Primitives";
+import { CoachMessage } from "@/components/ui/CoachMessage";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 import {
   createChatSession,
   endChatSession,
+  getChatHistory,
   listChatSessions,
   markUnderstood,
-  sendChatMessage,
+  streamChatMessage,
   type ChatSessionSummary,
 } from "@/lib/api";
 
@@ -22,28 +24,86 @@ type LocalMessage =
 export default function ChatLesson() {
   const t = useT();
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
+  const navState = (location.state ?? {}) as {
+    chatId?: string;
+    source?: string;
+  };
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(
+    navState.chatId ?? null,
+  );
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [coachThinking, setCoachThinking] = useState(true);
-  const [messages, setMessages] = useState<LocalMessage[]>(() => seedMessages(t));
+  const [messages, setMessages] = useState<LocalMessage[]>(() =>
+    navState.chatId ? [] : seedMessages(t),
+  );
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const streamAbortRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      streamAbortRef.current?.();
+    };
+  }, []);
+
+  // If the user arrived from "Analyze with AI", switch to that exact session
+  // even if the listSessions request hasn't returned yet — the navState id is
+  // canonical.
+  useEffect(() => {
+    if (navState.chatId) setActiveId(navState.chatId);
+    // We deliberately key on the id string so a back-and-forth nav with the
+    // same id doesn't re-trigger the effect.
+  }, [navState.chatId]);
 
   useEffect(() => {
     let live = true;
     listChatSessions().then((s) => {
       if (!live) return;
       setSessions(s);
-      const active = s.find((x) => x.status === "active") ?? s[0];
-      if (active) setActiveId(active.id);
+      // Honour the routed chat id first; otherwise fall back to the most
+      // recently active session.
+      if (navState.chatId && s.some((x) => x.id === navState.chatId)) {
+        setActiveId(navState.chatId);
+      } else if (!activeId) {
+        const active = s.find((x) => x.status === "active") ?? s[0];
+        if (active) setActiveId(active.id);
+      }
     });
     return () => {
       live = false;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navState.chatId]);
+
+  // Load the real, persisted history whenever the active session changes.
+  // Without this the page only shows the hardcoded seedMessages() after a
+  // refresh, making it look like the user's typed messages were lost.
+  useEffect(() => {
+    if (!activeId) return;
+    let live = true;
+    getChatHistory(activeId)
+      .then((history) => {
+        if (!live || history.length === 0) return;
+        setMessages(
+          history.map((m) =>
+            m.role === "user"
+              ? { id: m.id, role: "user", text: m.text }
+              : { id: m.id, role: "coach", nodes: m.text },
+          ),
+        );
+        setCoachThinking(false);
+      })
+      .catch(() => {
+        /* keep seed messages if the history call fails */
+      });
+    return () => {
+      live = false;
+    };
+  }, [activeId]);
 
   useEffect(() => {
     const id = setTimeout(() => setCoachThinking(false), 1200);
@@ -61,21 +121,51 @@ export default function ChatLesson() {
     if (!text || sending) return;
     setDraft("");
     const userMsg: LocalMessage = { id: `u-${Date.now()}`, role: "user", text };
-    setMessages((m) => [...m, userMsg]);
+    const coachId = `c-${Date.now()}`;
+    setMessages((m) => [
+      ...m,
+      userMsg,
+      { id: coachId, role: "coach", nodes: "" },
+    ]);
     setSending(true);
     setCoachThinking(true);
-    try {
-      const reply = await sendChatMessage(activeId ?? "current", text);
-      setMessages((m) => [
-        ...m,
-        { id: reply.id, role: "coach", nodes: reply.text },
-      ]);
-    } catch {
-      toast.error(t("Coach is offline. Try again in a moment."));
-    } finally {
-      setSending(false);
-      setCoachThinking(false);
-    }
+
+    // Stream coach reply from the WebSocket endpoint.
+    let buffer = "";
+    const appendCoach = (chunk: string) => {
+      buffer += chunk;
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === coachId && msg.role === "coach"
+            ? { ...msg, nodes: buffer }
+            : msg,
+        ),
+      );
+    };
+
+    const cleanup = streamChatMessage(activeId ?? "current", text, {
+      onToken: (content) => {
+        setCoachThinking(false);
+        appendCoach(content);
+      },
+      onMathInline: (latex) => appendCoach(`$${latex}$`),
+      onMathBlock: (latex) => appendCoach(`\n\n$$${latex}$$\n\n`),
+      onDiagram: (mermaid) => appendCoach(`\n\n[diagram]\n${mermaid}\n\n`),
+      onDone: () => {
+        setSending(false);
+        setCoachThinking(false);
+      },
+      onError: (err) => {
+        toast.error(
+          t("Coach is offline. Try again in a moment.") +
+            (err.message ? ` (${err.message})` : ""),
+        );
+        setSending(false);
+        setCoachThinking(false);
+      },
+    });
+    // Allow component unmount to abort the stream.
+    streamAbortRef.current = cleanup;
   };
 
   const handleNewSession = async () => {
@@ -371,7 +461,11 @@ export default function ChatLesson() {
                         lineHeight: 1.55,
                       }}
                     >
-                      {m.nodes}
+                      {typeof m.nodes === "string" ? (
+                        <CoachMessage text={m.nodes} pal={pal} />
+                      ) : (
+                        m.nodes
+                      )}
                     </div>
                   </div>
                 </div>

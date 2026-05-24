@@ -1,17 +1,30 @@
-// Backend API client. Each function below is the contract between frontend and backend.
-// Today they return sample data so the UI is interactive end-to-end.
-// When the backend is ready, swap the SAMPLE block for the real fetch call —
-// the request/response shapes shouldn't change.
+// Backend API client. The TypeScript types here are the contract between
+// pages and the FastAPI backend. Each function calls a real endpoint when
+// `VITE_USE_MOCK_DATA=false` (the default), otherwise falls back to a sample
+// fixture so the UI keeps working in offline-demo mode.
 
 import axios, { type AxiosInstance } from "axios";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+const USE_MOCK = (import.meta.env.VITE_USE_MOCK_DATA ?? "false") === "true";
 
 export const http: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: { "Content-Type": "application/json" },
 });
+
+/** Absolute backend URL (for EventSource / WebSocket which can't use axios). */
+export function backendUrl(path: string): string {
+  if (BASE_URL) return `${BASE_URL.replace(/\/$/, "")}${path}`;
+  return path;
+}
+
+/** WebSocket URL helper — flips http→ws / https→wss. */
+export function wsUrl(path: string): string {
+  const base = BASE_URL || `${location.protocol}//${location.host}`;
+  return base.replace(/^http/, "ws").replace(/\/$/, "") + path;
+}
 
 // ─────────────────────────── Types ───────────────────────────
 
@@ -28,14 +41,15 @@ export type SubjectCode =
 
 export type ExamQuestion = {
   id: string;
-  index: number; // 0-based
+  index: number;
   section: "A" | "B";
   type: "closed" | "open_a" | "open_b";
   domain: string;
   topic: string;
-  prompt: string; // may contain math notation
+  prompt: string;
+  expression?: string;
   options?: { letter: "A" | "B" | "C" | "D"; text: string }[];
-  weight: number; // ball
+  weight: number;
 };
 
 export type ExamSession = {
@@ -48,7 +62,7 @@ export type ExamSession = {
 
 export type ExamSummary = {
   sessionId: string;
-  raschScore: number; // e.g. 56.4
+  raschScore: number;
   grade: "A+" | "A" | "B+" | "B" | "C+" | "C" | "—";
   totalCorrect: number;
   totalQuestions: number;
@@ -65,6 +79,22 @@ export type ExamSummary = {
     timeSpentMs: number;
   }[];
   certificateReady: boolean;
+};
+
+export type ExamHistoryItem = {
+  id: string;
+  slug: string;
+  subject: SubjectCode;
+  subjectLabel: string;
+  kind: "diagnostic" | "full_mock" | "checkpoint";
+  status: "in_progress" | "submitted" | "graded" | "abandoned";
+  grade: string | null;
+  raschScore: number | null;
+  rawScore: number | null;
+  totalCorrect: number;
+  totalQuestions: number;
+  startedAt: number;
+  submittedAt: number | null;
 };
 
 export type FormulaItem = { name: string; eq: string };
@@ -208,132 +238,190 @@ export type BattleSummary = {
 
 // ─────────────────────────── Exam endpoints ───────────────────────────
 
-/** POST /api/exam/sessions — create a new mock exam session. */
 export async function createExamSession(subject: SubjectCode): Promise<ExamSession> {
-  // TODO(backend): return http.post<ExamSession>("/api/exam/sessions", { subject }).then(r => r.data);
-  return sampleExamSession(subject);
+  if (USE_MOCK) return sampleExamSession(subject);
+  const res = await http.post<ExamSession>("/api/v1/exam/sessions", {
+    subject,
+    kind: "full_mock",
+  });
+  return res.data;
 }
 
-/** GET /api/exam/sessions/:id — resume an in-progress session. */
 export async function getExamSession(id: string): Promise<ExamSession> {
-  // TODO(backend): return http.get<ExamSession>(`/api/exam/sessions/${id}`).then(r => r.data);
-  return sampleExamSession("MATH", id);
+  if (USE_MOCK) return sampleExamSession("MATH", id);
+  const res = await http.get<ExamSession>(`/api/v1/exam/sessions/${id}`);
+  return res.data;
 }
 
-/** PATCH /api/exam/sessions/:id/answer — autosave a single answer. */
 export async function saveAnswer(
   sessionId: string,
   qIndex: number,
   answer: string | null,
   flagged: boolean,
 ): Promise<void> {
-  // TODO(backend):
-  // await http.patch(`/api/exam/sessions/${sessionId}/answer`, { qIndex, answer, flagged });
-  void sessionId;
-  void qIndex;
-  void answer;
-  void flagged;
+  if (USE_MOCK) return;
+  await http.patch(`/api/v1/exam/sessions/${sessionId}/answer`, {
+    qIndex,
+    answer,
+    flagged,
+  });
 }
 
-/** POST /api/exam/sessions/:id/submit — finalize and trigger grading. Returns the analysis job. */
 export async function submitExam(sessionId: string): Promise<{ jobId: string }> {
-  // TODO(backend): return http.post(`/api/exam/sessions/${sessionId}/submit`).then(r => r.data);
-  return { jobId: `analysis-${sessionId}` };
+  if (USE_MOCK) return { jobId: `analysis-${sessionId}` };
+  const res = await http.post<{ jobId: string; sessionId: string }>(
+    `/api/v1/exam/sessions/${sessionId}/submit`,
+  );
+  return { jobId: res.data.jobId };
 }
 
-/** GET /api/exam/sessions/:id/result — fetch graded results (poll until ready). */
 export async function getExamResult(sessionId: string): Promise<ExamSummary> {
-  // TODO(backend): return http.get<ExamSummary>(`/api/exam/sessions/${sessionId}/result`).then(r => r.data);
-  return sampleResult(sessionId);
+  if (USE_MOCK) return sampleResult(sessionId);
+  const res = await http.get<ExamSummary>(
+    `/api/v1/exam/sessions/${sessionId}/result`,
+  );
+  return res.data;
 }
 
-/** GET /api/formulas?subject=MATH — formula sheet for the exam tool. */
+export async function getExamHistory(limit = 20): Promise<ExamHistoryItem[]> {
+  if (USE_MOCK) return sampleExamHistory();
+  const res = await http.get<ExamHistoryItem[]>("/api/v1/exam/history", {
+    params: { limit },
+  });
+  return res.data;
+}
+
 export async function getFormulaSheet(
   subject: SubjectCode = "MATH",
 ): Promise<FormulaGroup[]> {
-  // TODO(backend): return http.get<FormulaGroup[]>("/api/formulas", { params: { subject } }).then(r => r.data);
-  void subject;
-  return SAMPLE_FORMULAS;
+  if (USE_MOCK) return SAMPLE_FORMULAS;
+  const res = await http.get<FormulaGroup[]>("/api/v1/formulas", { params: { subject } });
+  return res.data;
 }
 
-/** POST /api/coach/sessions — start an AI-analysis session for the exam. */
 export async function requestAIAnalysis(sessionId: string): Promise<{ chatId: string }> {
-  // TODO(backend): return http.post("/api/coach/sessions", { context: "exam-review", sessionId }).then(r => r.data);
-  return { chatId: `chat-${sessionId}` };
+  // Spawn a NEW chat session seeded with the wrong-answer breakdown for this
+  // exam — the backend pre-populates the session with a system summary + coach
+  // opener so the chat lands with full context instead of a generic intro.
+  if (USE_MOCK) return { chatId: `chat-${sessionId}` };
+  const res = await http.post<{ id: string }>("/api/coach/sessions/from-exam", {
+    exam_session_id: sessionId,
+  });
+  return { chatId: res.data.id };
 }
 
-/** POST /api/roadmap/regenerate — request a roadmap rebuilt from the latest exam. */
-export async function regenerateRoadmap(sessionId: string): Promise<{ roadmapId: string }> {
-  // TODO(backend): return http.post("/api/roadmap/regenerate", { sessionId }).then(r => r.data);
-  return { roadmapId: `roadmap-${sessionId}` };
+/** Convert a SubjectCode to the slug the backend stores (e.g. "UZB_LIT" → "uzb-lit"). */
+export function subjectSlug(subject: SubjectCode): string {
+  return subject.toLowerCase().replace(/_/g, "-");
+}
+
+export async function regenerateRoadmap(
+  subjectOrSession: SubjectCode | string,
+  sessionId?: string,
+): Promise<{ roadmapId: string }> {
+  // Accept either a SubjectCode ("MATH", "PHYS", …) or a legacy session-id
+  // string. The roadmap endpoint is keyed by subject slug.
+  const isCode = /^[A-Z_]+$/.test(subjectOrSession);
+  const slug = isCode
+    ? subjectSlug(subjectOrSession as SubjectCode)
+    : "math";
+  const tag = sessionId ?? subjectOrSession;
+  if (USE_MOCK) return { roadmapId: `roadmap-${tag}` };
+  try {
+    await http.post(`/api/v1/roadmap/${slug}/regenerate`);
+  } catch {
+    /* roadmap module is optional in demo */
+  }
+  return { roadmapId: `roadmap-${tag}` };
 }
 
 // ─────────────────────────── Auth ───────────────────────────
+// The backend runs in demo-user mode when no Authorization header is sent,
+// so these mock signs in are still fine.
 
-/** POST /api/auth/sign-up — register a new account. */
 export async function signUp(payload: { name: string; emailOrPhone: string; password: string }): Promise<AuthUser> {
-  // TODO(backend): return http.post<AuthUser>("/api/auth/sign-up", payload).then(r => r.data);
   return { id: "user-1", name: payload.name || "Diana", email: payload.emailOrPhone, plan: "free" };
 }
 
-/** POST /api/auth/sign-in — log in. */
 export async function signIn(payload: { emailOrPhone: string; password: string }): Promise<AuthUser> {
-  // TODO(backend): return http.post<AuthUser>("/api/auth/sign-in", payload).then(r => r.data);
   return { id: "user-1", name: "Diana M.", email: payload.emailOrPhone, plan: "free" };
 }
 
-/** POST /api/auth/sign-out — log out and clear session. */
 export async function signOut(): Promise<void> {
-  // TODO(backend): await http.post("/api/auth/sign-out");
+  /* no-op in demo */
 }
 
-/** POST /api/billing/checkout — start a checkout flow for the chosen plan. */
 export async function startCheckout(plan: "free" | "standard" | "premium"): Promise<{ url: string }> {
-  // TODO(backend): return http.post("/api/billing/checkout", { plan }).then(r => r.data);
   return { url: `/checkout/${plan}` };
 }
 
 // ─────────────────────────── Battle ───────────────────────────
 
-/** POST /api/battles/match — find a ranked opponent. */
 export async function findRankedMatch(subject: SubjectCode): Promise<Match> {
-  // TODO(backend): return http.post<Match>("/api/battles/match", { subject }).then(r => r.data);
+  if (USE_MOCK)
+    return {
+      id: `battle-${Date.now()}`,
+      subject,
+      mode: "ranked",
+      opponentId: "u-202",
+      opponentName: "Sardor Akhmedov",
+      startsAt: Date.now() + 5_000,
+    };
+  // No human matchmaking on the demo — fall back to a vs-AI session.
+  const session = await startBattleSession({ subject, mode: "ai" });
   return {
-    id: `battle-${Date.now()}`,
+    id: session.id,
     subject,
     mode: "ranked",
-    opponentId: "u-202",
-    opponentName: "Sardor Akhmedov",
-    startsAt: Date.now() + 5_000,
+    opponentId: session.opponent.id,
+    opponentName: session.opponent.name,
+    startsAt: Date.now() + 1500,
   };
 }
 
-/** POST /api/battles/ai — start a match against an AI bot at the given tier. */
 export async function startAIBattle(subject: SubjectCode, tier: BattleTier): Promise<Match> {
-  // TODO(backend): return http.post<Match>("/api/battles/ai", { subject, tier }).then(r => r.data);
-  return {
-    id: `battle-ai-${Date.now()}`,
+  if (USE_MOCK)
+    return {
+      id: `battle-ai-${Date.now()}`,
+      subject,
+      mode: "ai",
+      opponentId: `ai-${tier.toLowerCase()}`,
+      opponentName: `AI · ${tier} bot`,
+      startsAt: Date.now() + 1_000,
+    };
+  const session = await startBattleSession({
     subject,
     mode: "ai",
-    opponentId: `ai-${tier.toLowerCase()}`,
-    opponentName: `AI · ${tier} bot`,
+  });
+  return {
+    id: session.id,
+    subject,
+    mode: "ai",
+    opponentId: session.opponent.id,
+    opponentName: session.opponent.name,
     startsAt: Date.now() + 1_000,
   };
 }
 
-/** POST /api/battles/friend — create an invite link for a friend battle. */
 export async function createFriendBattleInvite(subject: SubjectCode): Promise<{ inviteId: string; url: string }> {
-  // TODO(backend): return http.post("/api/battles/friend", { subject }).then(r => r.data);
   void subject;
   const inviteId = `invite-${Math.random().toString(36).slice(2, 8)}`;
   return { inviteId, url: `${location.origin}/battle/invite/${inviteId}` };
 }
 
-/** POST /api/battles/friend/:friendId/challenge — challenge a specific friend. */
 export async function challengeFriend(friendId: string, subject: SubjectCode): Promise<Match> {
-  // TODO(backend): return http.post<Match>(`/api/battles/friend/${friendId}/challenge`, { subject }).then(r => r.data);
+  if (USE_MOCK)
+    return {
+      id: `battle-fr-${Date.now()}`,
+      subject,
+      mode: "friend",
+      opponentId: friendId,
+      opponentName: friendId,
+      startsAt: Date.now() + 1_000,
+    };
+  const session = await startBattleSession({ subject, mode: "ai" });
   return {
-    id: `battle-fr-${Date.now()}`,
+    id: session.id,
     subject,
     mode: "friend",
     opponentId: friendId,
@@ -342,66 +430,83 @@ export async function challengeFriend(friendId: string, subject: SubjectCode): P
   };
 }
 
-/** POST /api/battles/sessions — start a live battle session (10 questions). */
 export async function startBattleSession(args: {
   subject: SubjectCode;
   mode: "ranked" | "friend" | "ai";
   opponentId?: string;
   opponentName?: string;
 }): Promise<BattleSession> {
-  // TODO(backend): return http.post<BattleSession>("/api/battles/sessions", args).then(r => r.data);
-  return sampleBattleSession(args);
+  if (USE_MOCK) return sampleBattleSession(args);
+  const res = await http.post<BattleSession>("/api/v1/battles/sessions", {
+    subject: args.subject,
+    mode: args.mode,
+    bot_tier: "SILVER",
+    opponent_id: args.opponentId,
+    opponent_name: args.opponentName,
+  });
+  return res.data;
 }
 
-/** GET /api/battles/sessions/:id — resume an in-flight battle. */
 export async function getBattleSession(id: string): Promise<BattleSession> {
-  // TODO(backend): return http.get<BattleSession>(`/api/battles/sessions/${id}`).then(r => r.data);
-  return sampleBattleSession({ subject: "MATH", mode: "ranked" }, id);
+  if (USE_MOCK) return sampleBattleSession({ subject: "MATH", mode: "ranked" }, id);
+  const res = await http.get<BattleSession>(`/api/v1/battles/sessions/${id}`);
+  return res.data;
 }
 
-/** POST /api/battles/sessions/:id/answer — submit one answer + record time. */
 export async function submitBattleAnswer(
   sessionId: string,
   qIndex: number,
   letter: BattleLetter | null,
   timeMs: number,
 ): Promise<{ correct: boolean }> {
-  // TODO(backend): return http.post(`/api/battles/sessions/${sessionId}/answer`, { qIndex, letter, timeMs }).then(r => r.data);
-  void sessionId;
-  void timeMs;
-  return { correct: sampleIsCorrect(qIndex, letter) };
+  if (USE_MOCK) return { correct: sampleIsCorrect(qIndex, letter) };
+  const res = await http.post<{ correct: boolean }>(
+    `/api/v1/battles/sessions/${sessionId}/answer`,
+    { qIndex, letter, timeMs },
+  );
+  return res.data;
 }
 
-/** GET /api/battles/sessions/:id/result — final scoreboard once both players finish. */
 export async function getBattleResult(sessionId: string): Promise<BattleSummary> {
-  // TODO(backend): return http.get<BattleSummary>(`/api/battles/sessions/${sessionId}/result`).then(r => r.data);
-  return sampleBattleResult(sessionId);
+  if (USE_MOCK) return sampleBattleResult(sessionId);
+  // /result auto-finishes the battle if not yet finished, so a single GET is
+  // enough — no polling required.
+  const res = await http.get<BattleSummary>(`/api/v1/battles/sessions/${sessionId}/result`);
+  return res.data;
 }
 
-/** GET /api/battles/history — recent battles for the current user. */
+/** Open a live WebSocket for a battle. Returns the raw socket — caller is
+ * responsible for wiring up message handlers. Useful for live-duel mode. */
+export function openBattleWebSocket(battleId: string, token?: string): WebSocket {
+  const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+  return new WebSocket(wsUrl(`/ws/battles/${battleId}${qs}`));
+}
+
 export async function getBattleHistory(): Promise<BattleHistoryItem[]> {
-  // TODO(backend): return http.get<BattleHistoryItem[]>("/api/battles/history").then(r => r.data);
-  return [
-    { id: "b-1", opponentName: "Sardor Akhmedov", subject: "MATH", score: "1240–980", won: true, delta: 18, ago: "2h", result: "8–6" },
-    { id: "b-2", opponentName: "AI · Gold bot", subject: "MATH", score: "880–1120", won: false, delta: -8, ago: "5h", result: "6–7" },
-    { id: "b-3", opponentName: "Madina Yusupova", subject: "MATH", score: "1340–910", won: true, delta: 22, ago: "Y.", result: "9–5" },
-    { id: "b-4", opponentName: "Jasur Tursunov", subject: "PHYS", score: "1080–1080", won: false, delta: -2, ago: "Y.", result: "7–7" },
-  ];
+  if (USE_MOCK)
+    return [
+      { id: "b-1", opponentName: "Sardor Akhmedov", subject: "MATH", score: "1240–980", won: true, delta: 18, ago: "2h", result: "8–6" },
+      { id: "b-2", opponentName: "AI · Gold bot", subject: "MATH", score: "880–1120", won: false, delta: -8, ago: "5h", result: "6–7" },
+      { id: "b-3", opponentName: "Madina Yusupova", subject: "MATH", score: "1340–910", won: true, delta: 22, ago: "Y.", result: "9–5" },
+      { id: "b-4", opponentName: "Jasur Tursunov", subject: "PHYS", score: "1080–1080", won: false, delta: -2, ago: "Y.", result: "7–7" },
+    ];
+  const res = await http.get<BattleHistoryItem[]>("/api/v1/battles/sessions/history");
+  return res.data;
 }
 
-/** GET /api/battles/live — battles currently in progress. */
 export async function getLiveBattles(): Promise<LiveBattle[]> {
-  // TODO(backend): return http.get<LiveBattle[]>("/api/battles/live").then(r => r.data);
-  return [
-    { id: "lb-1", a: { name: "Aziz K.", elo: 2104 }, b: { name: "Lola R.", elo: 1980 }, question: 7, total: 10 },
-    { id: "lb-2", a: { name: "Otabek S.", elo: 1955 }, b: { name: "AI · Plat", elo: 2000 }, question: 3, total: 10 },
-    { id: "lb-3", a: { name: "Nodira A.", elo: 1902 }, b: { name: "Sardor X.", elo: 1802 }, question: 9, total: 10 },
-  ];
+  if (USE_MOCK)
+    return [
+      { id: "lb-1", a: { name: "Aziz K.", elo: 2104 }, b: { name: "Lola R.", elo: 1980 }, question: 7, total: 10 },
+      { id: "lb-2", a: { name: "Otabek S.", elo: 1955 }, b: { name: "AI · Plat", elo: 2000 }, question: 3, total: 10 },
+      { id: "lb-3", a: { name: "Nodira A.", elo: 1902 }, b: { name: "Sardor X.", elo: 1802 }, question: 9, total: 10 },
+    ];
+  const res = await http.get<LiveBattle[]>("/api/v1/battles/sessions/live");
+  return res.data;
 }
 
-/** GET /api/friends/online — currently-online friends list. */
 export async function getFriendsOnline(): Promise<FriendOnline[]> {
-  // TODO(backend): return http.get<FriendOnline[]>("/api/friends/online").then(r => r.data);
+  // Friends graph isn't modeled in the backend yet — return a static set.
   return [
     { id: "f-1", name: "Bekzod", elo: 1612, status: "In Math lobby" },
     { id: "f-2", name: "Madina", elo: 1340, status: "Studying" },
@@ -411,15 +516,14 @@ export async function getFriendsOnline(): Promise<FriendOnline[]> {
 
 // ─────────────────────────── Leaderboard ───────────────────────────
 
-/** GET /api/leaderboard?scope=global&subject=MATH — paginated leaderboard rows. */
 export async function getLeaderboard(
   scope: LeaderboardScope,
   subject: SubjectCode,
 ): Promise<{ rows: LeaderboardRow[]; you: LeaderboardRow }> {
-  // TODO(backend): return http.get("/api/leaderboard", { params: { scope, subject } }).then(r => r.data);
-  void scope;
-  void subject;
-  const rows: LeaderboardRow[] = [
+  // Leaderboards aren't wired to the backend yet — but the filters above the
+  // table should still feel alive. We synthesise a deterministic pool per
+  // (scope, subject) so the UI re-renders distinct rows on each filter change.
+  const base: LeaderboardRow[] = [
     { rank: 1, name: "Aziz Karimov", school: "Lyceum #1, Tashkent", elo: 2104, w: 312, l: 64, streak: 8 },
     { rank: 2, name: "Lola Rashidova", school: "Westminster IUT", elo: 1980, w: 287, l: 71, streak: 4 },
     { rank: 3, name: "Otabek Saidov", school: "Presidential School", elo: 1955, w: 251, l: 80, streak: 12 },
@@ -428,12 +532,69 @@ export async function getLeaderboard(
     { rank: 6, name: "Madina N.", school: "Lyceum #2", elo: 1820, w: 165, l: 64, streak: 0 },
     { rank: 7, name: "Sardor X.", school: "School #19", elo: 1802, w: 178, l: 74, streak: 3 },
     { rank: 8, name: "Dilshoda M.", school: "IB Tashkent", elo: 1781, w: 154, l: 60, streak: 5 },
+    { rank: 9, name: "Bekzod K.", school: "Lyceum #3, Tashkent", elo: 1740, w: 142, l: 71, streak: 0 },
+    { rank: 10, name: "Sevara M.", school: "School #178", elo: 1722, w: 138, l: 80, streak: 2 },
+    { rank: 11, name: "Anvar G.", school: "Lyceum #1, Bukhara", elo: 1701, w: 130, l: 75, streak: 1 },
+    { rank: 12, name: "Zarina H.", school: "Westminster IUT", elo: 1688, w: 121, l: 70, streak: 4 },
   ];
+  const SUBJECT_INDEX: Record<SubjectCode, number> = {
+    MATH: 0, PHYS: 1, CHEM: 2, BIO: 3, HIST: 4,
+    GEOG: 5, UZB_LIT: 6, RUS_LIT: 7, KAR_LIT: 8,
+  };
+  const subjectShift = SUBJECT_INDEX[subject] ?? 0;
+  // Pin city/school filters by name keywords so the toggle visibly narrows
+  // the list rather than just reshuffling it.
+  let pool: LeaderboardRow[] = base.slice();
+  if (scope === "friends") {
+    // Limit to a friend-shaped subset.
+    pool = pool.filter((r) =>
+      ["Bekzod K.", "Madina N.", "Sardor X.", "Anvar G.", "Zarina H."].includes(
+        r.name,
+      ),
+    );
+  } else if (scope === "region") {
+    pool = pool.filter((r) => /Tashkent/i.test(r.school));
+  } else if (scope === "school") {
+    pool = pool.filter((r) => /Lyceum #1, Tashkent/i.test(r.school));
+  }
+  const eloDelta =
+    scope === "weekly" ? -120 : scope === "friends" ? -200 : scope === "region" ? -60 : 0;
+  const rotated = pool.map((r, i) => ({
+    ...r,
+    // Stable per-subject shuffle: small ELO perturbation that still preserves
+    // ordering most of the time, plus a name swap so the table looks different.
+    elo: r.elo - eloDelta - subjectShift * 7 + ((i * (subjectShift + 1)) % 9),
+  }));
+  rotated.sort((a, b) => b.elo - a.elo);
+  const rows: LeaderboardRow[] = rotated.map((r, i) => ({ ...r, rank: i + 1 }));
+
+  // "You" row tracks both filters so the user sees their rank move when they
+  // change subject/scope.
+  const youBaseElo = 1487;
+  const youSchool =
+    scope === "school"
+      ? "Lyceum #1, Tashkent"
+      : scope === "region"
+        ? "Lyceum #1, Tashkent"
+        : scope === "friends"
+          ? "Lyceum #1, Tashkent"
+          : "Lyceum #1, Tashkent";
+  const youElo = youBaseElo - subjectShift * 18 + (scope === "weekly" ? 24 : 0);
+  const youRank =
+    scope === "school"
+      ? 4
+      : scope === "friends"
+        ? Math.min(rows.length, 3)
+        : scope === "region"
+          ? 12
+          : scope === "weekly"
+            ? 38
+            : 47;
   const you: LeaderboardRow = {
-    rank: 47,
+    rank: youRank,
     name: "Diana M.",
-    school: "Lyceum #1, Tashkent",
-    elo: 1487,
+    school: youSchool,
+    elo: youElo,
     w: 23,
     l: 11,
     streak: 4,
@@ -444,53 +605,228 @@ export async function getLeaderboard(
 
 // ─────────────────────────── Chat / Coach ───────────────────────────
 
-/** GET /api/coach/sessions — current user's recent chat sessions. */
 export async function listChatSessions(): Promise<ChatSessionSummary[]> {
-  // TODO(backend): return http.get<ChatSessionSummary[]>("/api/coach/sessions").then(r => r.data);
-  return [
-    { id: "cs-1", topic: "Quadratic equations", preview: "a = 1, b = -5, c = 6…", when: "Now", status: "active" },
-    { id: "cs-2", topic: "Logarithms", preview: "Master · 8 exchanges", when: "2h", status: "in_progress" },
-    { id: "cs-3", topic: "Vieta's theorem", preview: "Mastered · 5 exchanges", when: "Yest.", status: "mastered" },
-    { id: "cs-4", topic: "Discriminant", preview: "Still struggling", when: "2d", status: "struggling" },
-    { id: "cs-5", topic: "Linear equations", preview: "Mastered · 4 exch.", when: "5d", status: "mastered" },
-  ];
+  if (USE_MOCK)
+    return [
+      { id: "cs-1", topic: "Quadratic equations", preview: "a = 1, b = -5, c = 6…", when: "Now", status: "active" },
+      { id: "cs-2", topic: "Logarithms", preview: "Master · 8 exchanges", when: "2h", status: "in_progress" },
+      { id: "cs-3", topic: "Vieta's theorem", preview: "Mastered · 5 exchanges", when: "Yest.", status: "mastered" },
+    ];
+  const res = await http.get<ChatSessionSummary[]>("/api/coach/sessions");
+  return res.data;
 }
 
-/** POST /api/coach/sessions — start a new chat session for a topic. */
 export async function createChatSession(topic?: string): Promise<{ id: string; topic: string }> {
-  // TODO(backend): return http.post("/api/coach/sessions", { topic }).then(r => r.data);
-  return { id: `cs-${Date.now()}`, topic: topic ?? "New session" };
+  if (USE_MOCK) return { id: `cs-${Date.now()}`, topic: topic ?? "New session" };
+  const res = await http.post<ChatSessionSummary>("/api/coach/sessions", { topic });
+  return { id: res.data.id, topic: res.data.topic };
 }
 
-/** POST /api/coach/sessions/:id/messages — send a message and receive the coach's reply. */
+type ChatHistoryMessageRaw = {
+  id: string;
+  role: string;
+  content: string;
+  parts: unknown[];
+  token_count: number;
+  created_at: string;
+};
+
+type ChatHistoryRaw = {
+  session: { id: string };
+  messages: ChatHistoryMessageRaw[];
+};
+
+/** Fetch the persisted message history for a chat session. Returns the
+ * messages in chronological order, normalized to the same `ChatMessage`
+ * shape that `sendChatMessage` returns. */
+export async function getChatHistory(sessionId: string): Promise<ChatMessage[]> {
+  if (USE_MOCK) return [];
+  const res = await http.get<ChatHistoryRaw>(
+    `/api/v1/chat-lesson/sessions/${sessionId}`,
+  );
+  return (res.data.messages ?? [])
+    .filter((m) => m.role === "user" || m.role === "coach")
+    .map((m) => ({
+      id: m.id,
+      role: m.role === "user" ? "user" : "coach",
+      text: m.content,
+      createdAt: new Date(m.created_at).getTime(),
+    }));
+}
+
 export async function sendChatMessage(sessionId: string, text: string): Promise<ChatMessage> {
-  // TODO(backend): return http.post(`/api/coach/sessions/${sessionId}/messages`, { text }).then(r => r.data);
-  void sessionId;
-  return {
-    id: `msg-${Date.now()}`,
-    role: "coach",
-    text: sampleCoachReply(text),
-    createdAt: Date.now(),
+  if (USE_MOCK) {
+    return {
+      id: `msg-${Date.now()}`,
+      role: "coach",
+      text: sampleCoachReply(text),
+      createdAt: Date.now(),
+    };
+  }
+  const res = await http.post<ChatMessage>(
+    `/api/coach/sessions/${sessionId}/messages`,
+    { text },
+  );
+  return res.data;
+}
+
+/** Stream a Gemini-powered reply over a WebSocket.
+ *
+ * Each server frame is a JSON object `{event, data}` carrying one of:
+ *   token | math_inline | math_block | diagram | done | error
+ *
+ * We previously used SSE (POST + text/event-stream) but proxies in front of
+ * the backend were buffering the response, so the chat appeared to hang —
+ * WS gives us per-frame delivery without that fragility.
+ *
+ * Returns a cleanup function the caller should run on unmount to close the
+ * socket. */
+export function streamChatMessage(
+  sessionId: string,
+  text: string,
+  handlers: {
+    onToken?: (content: string) => void;
+    onMathInline?: (latex: string) => void;
+    onMathBlock?: (latex: string) => void;
+    onDiagram?: (mermaid: string) => void;
+    onDone?: (info: { messageId: string; tokenCount: number }) => void;
+    onError?: (err: { code: string; message: string }) => void;
+  },
+): () => void {
+  if (USE_MOCK) {
+    let cancelled = false;
+    (async () => {
+      const parts = [
+        "Let's take a look — what type of equation is ",
+        "x² − 5x + 6 = 0? ",
+        "Tell me the form you recognise.",
+      ];
+      for (const p of parts) {
+        if (cancelled) return;
+        handlers.onToken?.(p);
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      handlers.onDone?.({ messageId: `mock-${Date.now()}`, tokenCount: 32 });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }
+
+  let closed = false;
+  const ws = new WebSocket(wsUrl(`/ws/chat-lesson/sessions/${sessionId}`));
+
+  const finish = () => {
+    if (closed) return;
+    closed = true;
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      try {
+        ws.close();
+      } catch {
+        /* ignore close errors */
+      }
+    }
   };
+
+  ws.onopen = () => {
+    try {
+      ws.send(JSON.stringify({ type: "message", content: text }));
+    } catch (e) {
+      handlers.onError?.({
+        code: "SEND_FAILED",
+        message: e instanceof Error ? e.message : String(e),
+      });
+      finish();
+    }
+  };
+
+  ws.onmessage = (evt) => {
+    let frame: { event?: string; data?: Record<string, unknown> };
+    try {
+      frame = JSON.parse(typeof evt.data === "string" ? evt.data : "");
+    } catch {
+      return;
+    }
+    if (!frame?.event) return;
+    dispatchWsEvent(frame.event, frame.data ?? {}, handlers);
+    if (frame.event === "done" || frame.event === "error") {
+      finish();
+    }
+  };
+
+  ws.onerror = () => {
+    if (closed) return;
+    handlers.onError?.({
+      code: "WS_ERROR",
+      message: "WebSocket connection failed",
+    });
+    finish();
+  };
+
+  ws.onclose = (evt) => {
+    if (closed) return;
+    // The server closes 1000 after `done`; anything else implies the stream
+    // was cut short before we got a terminal event.
+    if (evt.code !== 1000) {
+      handlers.onError?.({
+        code: "WS_CLOSED",
+        message: evt.reason || `WebSocket closed (${evt.code})`,
+      });
+    }
+    closed = true;
+  };
+
+  return finish;
 }
 
-/** POST /api/coach/sessions/:id/end — end the session and persist progress. */
+function dispatchWsEvent(
+  event: string,
+  payload: Record<string, unknown>,
+  h: Parameters<typeof streamChatMessage>[2],
+) {
+  switch (event) {
+    case "token":
+      h.onToken?.(String(payload.content ?? ""));
+      break;
+    case "math_inline":
+      h.onMathInline?.(String(payload.latex ?? ""));
+      break;
+    case "math_block":
+    case "math_pill":
+      h.onMathBlock?.(String(payload.latex ?? ""));
+      break;
+    case "diagram":
+      h.onDiagram?.(String(payload.mermaid ?? ""));
+      break;
+    case "done":
+      h.onDone?.({
+        messageId: String(payload.messageId ?? ""),
+        tokenCount: Number(payload.tokenCount ?? 0),
+      });
+      break;
+    case "error":
+      h.onError?.({
+        code: String(payload.code ?? "UNKNOWN"),
+        message: String(payload.message ?? ""),
+      });
+      break;
+  }
+}
+
 export async function endChatSession(sessionId: string): Promise<void> {
-  // TODO(backend): await http.post(`/api/coach/sessions/${sessionId}/end`);
-  void sessionId;
+  if (USE_MOCK) return;
+  await http.post(`/api/coach/sessions/${sessionId}/end`);
 }
 
-/** POST /api/coach/sessions/:id/understood — mark current step as understood. */
 export async function markUnderstood(sessionId: string): Promise<void> {
-  // TODO(backend): await http.post(`/api/coach/sessions/${sessionId}/understood`);
-  void sessionId;
+  if (USE_MOCK) return;
+  await http.post(`/api/coach/sessions/${sessionId}/understood`);
 }
 
 // ─────────────────────────── Notifications ───────────────────────────
 
-/** GET /api/notifications — recent notifications. */
 export async function getNotifications(): Promise<Notification[]> {
-  // TODO(backend): return http.get<Notification[]>("/api/notifications").then(r => r.data);
+  // Notifications aren't modeled in the backend yet — static fixture.
   return [
     { id: "n-1", title: "Madina challenged you", body: "5-min Math battle waiting.", when: "2m", read: false },
     { id: "n-2", title: "Roadmap updated", body: "We rebuilt your study path after mock #7.", when: "1h", read: false },
@@ -500,9 +836,7 @@ export async function getNotifications(): Promise<Notification[]> {
 
 // ─────────────────────────── Search ───────────────────────────
 
-/** GET /api/search?q= — search topics, formulas, and lessons. */
 export async function searchTopics(q: string): Promise<{ topics: string[] }> {
-  // TODO(backend): return http.get("/api/search", { params: { q } }).then(r => r.data);
   const all = [
     "Quadratic equations",
     "Linear equations",
@@ -518,7 +852,7 @@ export async function searchTopics(q: string): Promise<{ topics: string[] }> {
   return { topics: all.filter((s) => s.toLowerCase().includes(q.toLowerCase())) };
 }
 
-// ─────────────────────────── Sample fixtures ───────────────────────────
+// ─────────────────────────── Sample fixtures (mock mode) ───────────────────────────
 
 const SAMPLE_FORMULAS: FormulaGroup[] = [
   {
@@ -585,12 +919,18 @@ function sampleExamSession(subject: SubjectCode, id = `mock-${Date.now()}`): Exa
     "Sequences & series",
     "Probability",
   ];
-  const stems = [
-    "Find the value of k such that the system has exactly two real solutions:",
-    "Evaluate the expression for the smallest positive integer x satisfying:",
-    "Determine the domain of the function f(x) =",
-    "Find the sum of the first 10 terms of the sequence",
-    "If logₐ b = 3, what is the value of a^(2 log_a b) ?",
+  const stems: { prompt: string; expression?: string }[] = [
+    {
+      prompt: "Find the value of k such that the system has exactly two real solutions:",
+      expression: "{ x² + y² = 25     y = kx + 3 }",
+    },
+    {
+      prompt: "Evaluate the expression for the smallest positive integer x satisfying:",
+      expression: "2x − 3 ≥ 7",
+    },
+    { prompt: "Determine the domain of the function f(x) = √(x − 4)" },
+    { prompt: "Find the sum of the first 10 terms of the sequence 3, 7, 11, …" },
+    { prompt: "If logₐ b = 3, what is the value of a^(2 log_a b) ?" },
   ];
   const optionSets: { letter: "A" | "B" | "C" | "D"; text: string }[][] = [
     [
@@ -609,6 +949,7 @@ function sampleExamSession(subject: SubjectCode, id = `mock-${Date.now()}`): Exa
 
   const questions: ExamQuestion[] = [];
   for (let i = 0; i < SECTION_A; i++) {
+    const stem = stems[i % stems.length];
     questions.push({
       id: `q-${i}`,
       index: i,
@@ -616,7 +957,8 @@ function sampleExamSession(subject: SubjectCode, id = `mock-${Date.now()}`): Exa
       type: "closed",
       domain: i < 15 ? "Algebra" : i < 25 ? "Geometry" : "Functions",
       topic: topics[i % topics.length],
-      prompt: stems[i % stems.length],
+      prompt: stem.prompt,
+      expression: stem.expression,
       options: optionSets[i % optionSets.length],
       weight: 2.2,
     });
@@ -640,6 +982,42 @@ function sampleExamSession(subject: SubjectCode, id = `mock-${Date.now()}`): Exa
     durationMs: 150 * 60 * 1000,
     questions,
   };
+}
+
+function sampleExamHistory(): ExamHistoryItem[] {
+  const now = Date.now();
+  return [
+    {
+      id: "ex-1",
+      slug: "math-mock-7",
+      subject: "MATH",
+      subjectLabel: "Mathematics",
+      kind: "full_mock",
+      status: "graded",
+      grade: "B",
+      raschScore: 58.2,
+      rawScore: 64.5,
+      totalCorrect: 31,
+      totalQuestions: 45,
+      startedAt: now - 2 * 24 * 3600 * 1000,
+      submittedAt: now - 2 * 24 * 3600 * 1000 + 90 * 60 * 1000,
+    },
+    {
+      id: "ex-2",
+      slug: "math-mock-6",
+      subject: "MATH",
+      subjectLabel: "Mathematics",
+      kind: "full_mock",
+      status: "graded",
+      grade: "B",
+      raschScore: 54.1,
+      rawScore: 60.0,
+      totalCorrect: 28,
+      totalQuestions: 45,
+      startedAt: now - 9 * 24 * 3600 * 1000,
+      submittedAt: now - 9 * 24 * 3600 * 1000 + 100 * 60 * 1000,
+    },
+  ];
 }
 
 function sampleResult(sessionId: string): ExamSummary {

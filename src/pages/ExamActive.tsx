@@ -20,7 +20,14 @@ import {
   type ExamState,
 } from "@/lib/examState";
 import { useExamTimer } from "@/hooks/useExamTimer";
-import { createExamSession, saveAnswer, submitExam, type ExamSession, type SubjectCode } from "@/lib/api";
+import {
+  createExamSession,
+  getExamSession,
+  saveAnswer,
+  submitExam,
+  type ExamSession,
+  type SubjectCode,
+} from "@/lib/api";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 import {
   examModeFromPath,
@@ -47,7 +54,13 @@ export default function ExamActive() {
     scratch: false,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const autoSubmitFired = useRef(false);
+  // One-shot guard: stops Strict Mode's double-invoke of effects from creating
+  // a second exam attempt on the backend. Without it, every mount POSTs a new
+  // session and our answers were being saved to a stale id that wasn't the one
+  // we ended up submitting from.
+  const booted = useRef(false);
 
   const mode = examModeFromPath(location.pathname);
   const subject: SubjectCode = navState?.subject ?? "MATH";
@@ -59,21 +72,49 @@ export default function ExamActive() {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Boot: ensure we have an exam state (timer) and a session (questions).
+  // If the caller (ExamLanding / QuickExamStart) already created an attempt
+  // and passed its id via navState, REUSE it via GET — never create a second
+  // one, otherwise our autosave + submit go to a different attempt than the
+  // one the user actually answered against.
   useEffect(() => {
-    let live = true;
+    // Strict-Mode-safe one-shot guard. We DON'T use a per-effect `live` flag
+    // because React 18 Strict Mode mounts the effect, unmounts (firing
+    // cleanup), then mounts again — the cleanup from the first mount would
+    // mark the in-flight request stale, but `booted.current` already prevents
+    // the second mount from kicking off a replacement, so the page would hang
+    // forever. Letting the late setState land is harmless (and required) here.
+    if (booted.current) return;
+    booted.current = true;
 
     if (!exam) {
-      const s = startExam(EXAM_DURATION_MS);
-      if (live) setExam(s);
+      setExam(startExam(EXAM_DURATION_MS));
     }
     (async () => {
-      const ses = await createExamSession(subject);
-      if (live) setSession(ses);
+      const describe = (e: unknown): string => {
+        if (typeof e === "object" && e && "response" in e) {
+          const resp = (e as { response?: { data?: { detail?: string } } }).response;
+          if (resp?.data?.detail) return resp.data.detail;
+        }
+        return e instanceof Error ? e.message : String(e);
+      };
+      try {
+        const ses = navState?.sessionId
+          ? await getExamSession(navState.sessionId)
+          : await createExamSession(subject);
+        setSession(ses);
+      } catch (e) {
+        if (!navState?.sessionId) {
+          setLoadError(describe(e));
+          return;
+        }
+        try {
+          const fresh = await createExamSession(subject);
+          setSession(fresh);
+        } catch (e2) {
+          setLoadError(describe(e2));
+        }
+      }
     })();
-
-    return () => {
-      live = false;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -97,9 +138,15 @@ export default function ExamActive() {
   const handleSubmit = useCallback(
     async (isAuto = false) => {
       if (submitting) return;
+      if (!session?.id) {
+        // No real attempt id — refuse instead of POSTing "pending" and ending
+        // up on a result page with zero saved answers.
+        toast.error(t("Exam isn't ready yet. Give it a second and try again."));
+        return;
+      }
       setSubmitting(true);
       try {
-        const sid = session?.id ?? "pending";
+        const sid = session.id;
         await submitExam(sid);
         if (exam) {
           persist({ ...exam, finishedAt: Date.now() });
@@ -192,20 +239,49 @@ export default function ExamActive() {
         : pal.text;
   const timerInk = timer.remainingMs <= 15 * 60_000 ? pal.accentInk : pal.surface;
 
-  // Loading state
+  // Loading / error state
   if (!exam || !session) {
     return (
       <div
         style={{
           height: "100%",
           display: "flex",
+          flexDirection: "column",
+          gap: 12,
           alignItems: "center",
           justifyContent: "center",
-          color: pal.muted,
+          color: loadError ? pal.bad : pal.muted,
           fontSize: 14,
+          padding: 24,
+          textAlign: "center",
         }}
       >
-        {t("Loading exam…")}
+        {loadError ? (
+          <>
+            <div style={{ fontWeight: 600 }}>{t("Could not start exam.")}</div>
+            <div style={{ color: pal.muted, maxWidth: 480 }}>{loadError}</div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <Btn
+                pal={pal}
+                tone="primary"
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                {t("Try again")}
+              </Btn>
+              <Btn
+                pal={pal}
+                tone="outline"
+                size="sm"
+                onClick={() => navigate(exitPathFor(mode))}
+              >
+                {t("Back")}
+              </Btn>
+            </div>
+          </>
+        ) : (
+          t("Loading exam…")
+        )}
       </div>
     );
   }
@@ -723,12 +799,9 @@ export default function ExamActive() {
             >
               {q.prompt}
             </div>
-            {q.section === "A" && (
+            {q.expression && (
               <MathPill pal={pal} block>
-                <span>{"{ "}</span>
-                <span>x² + y² = 25</span>
-                <span style={{ marginLeft: 24 }}>y = kx + 3</span>
-                <span>{" }"}</span>
+                {q.expression}
               </MathPill>
             )}
 

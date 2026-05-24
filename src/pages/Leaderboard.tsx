@@ -24,11 +24,19 @@ const SUBJECTS: { code: SubjectCode; label: string }[] = [
 
 type Row = LeaderboardRow;
 
-function TopThree() {
+function TopThree({ rows }: { rows: Row[] }) {
+  if (rows.length < 3) {
+    // Not enough rows in this scope — skip the podium so the layout doesn't
+    // look broken.
+    return null;
+  }
+  const first = rows[0];
+  const second = rows[1];
+  const third = rows[2];
   const top = [
-    { rank: 2, name: "Lola R.", elo: 1980, hue: 320, h: 90 },
-    { rank: 1, name: "Aziz K.", elo: 2104, hue: 20, h: 120 },
-    { rank: 3, name: "Otabek S.", elo: 1955, hue: 200, h: 70 },
+    { rank: 2, name: second.name, elo: second.elo, hue: 320, h: 90 },
+    { rank: 1, name: first.name, elo: first.elo, hue: 20, h: 120 },
+    { rank: 3, name: third.name, elo: third.elo, hue: 200, h: 70 },
   ];
   return (
     <div
@@ -112,12 +120,15 @@ export default function Leaderboard() {
   const [scope, setScope] = useState<LeaderboardScope>("global");
   const [subject, setSubject] = useState<SubjectCode>("MATH");
   const [rows, setRows] = useState<Row[]>([]);
+  const [you, setYou] = useState<Row | null>(null);
   const [matching, setMatching] = useState(false);
 
   useEffect(() => {
     let live = true;
     getLeaderboard(scope, subject).then((data) => {
-      if (live) setRows(data.rows);
+      if (!live) return;
+      setRows(data.rows);
+      setYou(data.you);
     });
     return () => {
       live = false;
@@ -256,7 +267,7 @@ export default function Leaderboard() {
             })}
           </div>
 
-          <TopThree />
+          <TopThree rows={rows} />
 
           <Card pal={pal} pad={0}>
             <div
@@ -371,87 +382,90 @@ export default function Leaderboard() {
                 margin: "4px 18px",
               }}
             />
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: isMobile
-                  ? "44px 1fr 80px"
-                  : "60px 1fr 110px 100px 80px",
-                padding: "14px 18px",
-                alignItems: "center",
-                background: pal.primarySoft,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: pal.primary,
-                  fontFamily: '"JetBrains Mono", monospace',
-                }}
-              >
-                #47
-              </span>
+            {you && (
               <div
                 style={{
-                  display: "flex",
+                  display: "grid",
+                  gridTemplateColumns: isMobile
+                    ? "44px 1fr 80px"
+                    : "60px 1fr 110px 100px 80px",
+                  padding: "14px 18px",
                   alignItems: "center",
-                  gap: 10,
+                  background: pal.primarySoft,
                 }}
               >
-                <Avatar name="Diana" size={32} hue={20} ring={pal.primary} />
-                <div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: pal.primary,
-                    }}
-                  >
-                    {t("You")} · Diana M.
-                  </div>
-                  <div style={{ fontSize: 11, color: pal.muted }}>
-                    {t("Lyceum #1, Tashkent")}
-                  </div>
-                </div>
-              </div>
-              <span
-                style={{
-                  textAlign: "right",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: pal.primary,
-                  fontFamily: '"JetBrains Mono", monospace',
-                }}
-              >
-                1487
-              </span>
-              {!isMobile && (
                 <span
                   style={{
-                    textAlign: "right",
-                    fontSize: 12,
-                    color: pal.muted,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: pal.primary,
                     fontFamily: '"JetBrains Mono", monospace',
                   }}
                 >
-                  <span style={{ color: pal.good }}>23</span> ·{" "}
-                  <span style={{ color: pal.bad }}>11</span>
+                  #{you.rank}
                 </span>
-              )}
-              {!isMobile && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <Avatar name={you.name} size={32} hue={20} ring={pal.primary} />
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: pal.primary,
+                      }}
+                    >
+                      {t("You")} · {you.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: pal.muted }}>
+                      {you.school}
+                    </div>
+                  </div>
+                </div>
                 <span
                   style={{
                     textAlign: "right",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: pal.accent,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: pal.primary,
+                    fontFamily: '"JetBrains Mono", monospace',
                   }}
                 >
-                  4 <Icon name="flame" size={12} color={pal.accent} />
+                  {you.elo}
                 </span>
-              )}
-            </div>
+                {!isMobile && (
+                  <span
+                    style={{
+                      textAlign: "right",
+                      fontSize: 12,
+                      color: pal.muted,
+                      fontFamily: '"JetBrains Mono", monospace',
+                    }}
+                  >
+                    <span style={{ color: pal.good }}>{you.w}</span> ·{" "}
+                    <span style={{ color: pal.bad }}>{you.l}</span>
+                  </span>
+                )}
+                {!isMobile && (
+                  <span
+                    style={{
+                      textAlign: "right",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: pal.accent,
+                    }}
+                  >
+                    {you.streak}{" "}
+                    <Icon name="flame" size={12} color={pal.accent} />
+                  </span>
+                )}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -486,14 +500,29 @@ export default function Leaderboard() {
                   fontFamily: '"JetBrains Mono", monospace',
                 }}
               >
-                #47
+                #{you?.rank ?? "—"}
               </span>
               <Pill pal={pal} tone="good">
                 <Icon name="arrow-up" size={11} /> 5
               </Pill>
             </div>
             <div style={{ fontSize: 12, color: pal.muted }}>
-              {t("of 8,412 students in Math")}
+              {t("of 8,412 students in")}{" "}
+              {t(
+                SUBJECTS.find((s) => s.code === subject)?.label ?? "Mathematics",
+              )}{" "}
+              ·{" "}
+              {t(
+                scope === "global"
+                  ? "Global"
+                  : scope === "weekly"
+                    ? "This week"
+                    : scope === "friends"
+                      ? "Friends"
+                      : scope === "region"
+                        ? "Tashkent"
+                        : "My school",
+              )}
             </div>
             <div
               style={{
@@ -518,7 +547,7 @@ export default function Leaderboard() {
                     fontFamily: '"JetBrains Mono", monospace',
                   }}
                 >
-                  1487
+                  {you?.elo ?? "—"}
                 </div>
               </div>
               <div>

@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Btn, Card, Pill } from "@/components/ui/Primitives";
 import { LangSwitcher } from "@/components/app/LangSwitcher";
-import { createExamSession, type SubjectCode } from "@/lib/api";
+import {
+  createExamSession,
+  getExamHistory,
+  type ExamHistoryItem,
+  type SubjectCode,
+} from "@/lib/api";
 import { startExam } from "@/lib/examState";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 
@@ -23,8 +28,29 @@ export default function ExamLanding() {
   const navigate = useNavigate();
   const [subject, setSubject] = useState<SubjectCode>("MATH");
   const [starting, setStarting] = useState(false);
+  const [history, setHistory] = useState<ExamHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
+
+  useEffect(() => {
+    let live = true;
+    setHistoryLoading(true);
+    getExamHistory(20)
+      .then((rows) => {
+        if (!live) return;
+        setHistory(rows);
+      })
+      .catch(() => {
+        if (live) setHistory([]);
+      })
+      .finally(() => {
+        if (live) setHistoryLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const start = async () => {
     if (starting) return;
@@ -385,6 +411,153 @@ export default function ExamLanding() {
                 {t("Find a quiet 2.5h window — exit closes the session.")}
               </div>
             </div>
+          </Card>
+
+          <Card pal={pal} pad={20}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                marginBottom: 10,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: pal.muted,
+                }}
+              >
+                {t("Mock exam history")}
+              </div>
+              {history.filter((h) => h.subject === subject).length > 0 && (
+                <span style={{ fontSize: 11, color: pal.muted }}>
+                  {history.filter((h) => h.subject === subject).length}{" "}
+                  {t("attempts")}
+                </span>
+              )}
+            </div>
+            {historyLoading ? (
+              <div style={{ fontSize: 12, color: pal.muted, padding: "8px 0" }}>
+                {t("Loading…")}
+              </div>
+            ) : (
+              (() => {
+                const subjectHistory = history.filter(
+                  (h) => h.subject === subject,
+                );
+                if (subjectHistory.length === 0) {
+                  return (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: pal.muted,
+                        padding: "10px 0",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {t(
+                        "No mocks yet for this subject. Finish one and your score will appear here.",
+                      )}
+                    </div>
+                  );
+                }
+                return subjectHistory.slice(0, 5).map((h, i) => {
+                  const submitted = h.submittedAt ?? h.startedAt;
+                  const dateLabel = new Date(submitted).toLocaleDateString(
+                    undefined,
+                    { month: "short", day: "numeric" },
+                  );
+                  const scoreColor =
+                    h.raschScore == null
+                      ? pal.muted
+                      : h.raschScore >= 60
+                        ? pal.primary
+                        : h.raschScore >= 46
+                          ? pal.text
+                          : pal.bad;
+                  const clickable = h.status === "graded";
+                  return (
+                    <button
+                      key={h.id}
+                      type="button"
+                      disabled={!clickable}
+                      onClick={() => {
+                        if (!clickable) return;
+                        navigate("/app/exam/result", {
+                          state: { sessionId: h.id, subject: h.subject },
+                        });
+                      }}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr auto auto",
+                        gap: 10,
+                        alignItems: "center",
+                        width: "100%",
+                        padding: "10px 0",
+                        borderTop: i ? `1px solid ${pal.line}` : "none",
+                        background: "transparent",
+                        border: "none",
+                        textAlign: "left",
+                        fontFamily: "inherit",
+                        cursor: clickable ? "pointer" : "default",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {h.kind === "full_mock"
+                            ? t("Full mock")
+                            : h.kind === "diagnostic"
+                              ? t("Diagnostic")
+                              : t("Checkpoint")}
+                        </div>
+                        <div style={{ fontSize: 11, color: pal.muted }}>
+                          {dateLabel} ·{" "}
+                          {h.status === "graded"
+                            ? `${h.totalCorrect}/${h.totalQuestions}`
+                            : h.status === "in_progress"
+                              ? t("in progress")
+                              : t(h.status)}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 800,
+                            color: scoreColor,
+                            fontFamily: '"JetBrains Mono", monospace',
+                          }}
+                        >
+                          {h.raschScore != null
+                            ? h.raschScore.toFixed(1)
+                            : "—"}
+                        </div>
+                        <div style={{ fontSize: 10, color: pal.muted }}>
+                          {h.grade ?? "—"}
+                        </div>
+                      </div>
+                      {clickable ? (
+                        <Icon name="chev-right" size={14} color={pal.muted} />
+                      ) : (
+                        <span style={{ width: 14 }} />
+                      )}
+                    </button>
+                  );
+                });
+              })()
+            )}
           </Card>
 
           <Card pal={pal} pad={20}>

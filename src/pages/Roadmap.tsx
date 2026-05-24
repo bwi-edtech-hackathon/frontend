@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
@@ -6,7 +6,11 @@ import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
 import { Btn, Card, Pill, Progress } from "@/components/ui/Primitives";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
-import { regenerateRoadmap } from "@/lib/api";
+import {
+  getExamHistory,
+  regenerateRoadmap,
+  type ExamHistoryItem,
+} from "@/lib/api";
 
 type NodeState = "done" | "active" | "locked";
 type NodeMeta = "event" | "checkpoint" | "goal" | undefined;
@@ -28,12 +32,38 @@ export default function Roadmap() {
   const isMobile = useIsMobile();
   const isAtMostTablet = useIsAtMostTablet();
   const [regenerating, setRegenerating] = useState(false);
+  const [history, setHistory] = useState<ExamHistoryItem[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    getExamHistory(10)
+      .then((rows) => {
+        if (live) setHistory(rows);
+      })
+      .catch(() => {
+        /* keep empty list */
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const gradedMocks = history.filter(
+    (h) => h.status === "graded" && h.raschScore != null,
+  );
 
   const handleRegenerate = async () => {
     if (regenerating) return;
     setRegenerating(true);
     try {
-      await regenerateRoadmap("latest");
+      // Regenerate every subject the user has actually taken a mock in,
+      // so each subject's roadmap reflects its own latest attempt — not
+      // just "math" like the old hardcoded call.
+      const subjects = Array.from(
+        new Set(gradedMocks.map((m) => m.subject)),
+      );
+      const targets = subjects.length > 0 ? subjects : (["MATH"] as const);
+      await Promise.all(targets.map((s) => regenerateRoadmap(s)));
       toast.success(t("Roadmap updated — sequenced around your latest mock."));
     } catch {
       toast.error(t("Could not regenerate roadmap. Try again."));
@@ -414,6 +444,182 @@ export default function Roadmap() {
             );
           })}
         </div>
+      </div>
+
+      {/* Mock exam results */}
+      <div
+        style={{
+          padding: isMobile ? "0 16px 16px" : "0 32px 16px",
+        }}
+      >
+        <Card pal={pal} pad={20}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: 12,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: pal.muted,
+                }}
+              >
+                {t("Mock exam results")}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: pal.muted,
+                  marginTop: 2,
+                }}
+              >
+                {t("Your scores from completed mocks — tap to reopen the report.")}
+              </div>
+            </div>
+            <Link
+              to="/app/exam"
+              style={{
+                fontSize: 12,
+                color: pal.primary,
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              {t("Start new mock")} →
+            </Link>
+          </div>
+          {gradedMocks.length === 0 ? (
+            <div
+              style={{
+                fontSize: 12,
+                color: pal.muted,
+                padding: "8px 0",
+                lineHeight: 1.5,
+              }}
+            >
+              {t(
+                "No graded mocks yet. After you submit one, the score will land here.",
+              )}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "repeat(auto-fill, minmax(220px, 1fr))",
+                gap: 10,
+              }}
+            >
+              {gradedMocks.slice(0, 6).map((h) => {
+                const submitted = h.submittedAt ?? h.startedAt;
+                const dateLabel = new Date(submitted).toLocaleDateString(
+                  undefined,
+                  { month: "short", day: "numeric" },
+                );
+                const scoreColor =
+                  (h.raschScore ?? 0) >= 60
+                    ? pal.primary
+                    : (h.raschScore ?? 0) >= 46
+                      ? pal.text
+                      : pal.bad;
+                return (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() =>
+                      navigate("/app/exam/result", {
+                        state: { sessionId: h.id, subject: h.subject },
+                      })
+                    }
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      padding: "12px 14px",
+                      background: pal.surfaceAlt,
+                      border: `1px solid ${pal.line}`,
+                      borderRadius: 12,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        justifyContent: "space-between",
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: pal.text,
+                        }}
+                      >
+                        {h.subjectLabel}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: pal.muted,
+                        }}
+                      >
+                        {dateLabel}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 800,
+                          color: scoreColor,
+                          fontFamily: '"JetBrains Mono", monospace',
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        {h.raschScore!.toFixed(1)}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: pal.muted,
+                        }}
+                      >
+                        / 75 · {h.grade ?? "—"}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: pal.muted,
+                        fontFamily: '"JetBrains Mono", monospace',
+                      }}
+                    >
+                      {h.totalCorrect}/{h.totalQuestions} {t("correct")}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Legend & details */}

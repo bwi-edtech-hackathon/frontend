@@ -76,7 +76,7 @@ export default function ExamResult() {
     }
     setBusy("roadmap");
     try {
-      await regenerateRoadmap(result.sessionId);
+      await regenerateRoadmap(state.subject ?? "MATH", result.sessionId);
       navigate("/app/roadmap");
     } finally {
       setBusy(null);
@@ -366,6 +366,27 @@ export default function ExamResult() {
               </Pill>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {result.weakTopics.length === 0 && (
+                <div
+                  style={{
+                    padding: "18px 14px",
+                    background: pal.surfaceAlt,
+                    border: `1px dashed ${pal.line}`,
+                    borderRadius: 12,
+                    fontSize: 13,
+                    color: pal.muted,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {result.totalCorrect === 0
+                    ? t(
+                        "We couldn't pin down weak topics yet — you didn't submit enough answers for a meaningful breakdown. Take the mock again and answer at least a handful so the diagnostic engine has something to chew on.",
+                      )
+                    : t(
+                        "No clear weak spots — your answers were spread across topics. Run one more mock to refine the picture.",
+                      )}
+                </div>
+              )}
               {result.weakTopics.map((w, i) => (
                 <div
                   key={w.topic}
@@ -425,6 +446,27 @@ export default function ExamResult() {
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
               {t("You're solid on")}
             </div>
+            {result.strongTopics.length === 0 && (
+              <div
+                style={{
+                  padding: "18px 14px",
+                  background: pal.surfaceAlt,
+                  border: `1px dashed ${pal.line}`,
+                  borderRadius: 12,
+                  fontSize: 13,
+                  color: pal.muted,
+                  lineHeight: 1.55,
+                }}
+              >
+                {result.totalCorrect === 0
+                  ? t(
+                      "Nothing graded as a strength yet — you scored 0 on this attempt. Once you start landing correct answers across a topic we'll surface it here.",
+                    )
+                  : t(
+                      "Not enough attempts on any single topic to call it a strength yet. Knock out a few checkpoint quizzes and they'll start showing up.",
+                    )}
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {result.strongTopics.map((s) => (
                 <div
