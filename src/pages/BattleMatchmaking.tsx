@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon } from "@/components/ui/Icon";
@@ -44,29 +45,54 @@ export default function BattleMatchmaking() {
       setEta((v) => (v > 0 ? v - 1 : 0));
     }, 1000);
 
+    // Hard ceiling: if matchmaking hasn't produced a battle in 15s, fall back
+    // to the Battle landing page so the user is never left staring at the
+    // pulsing avatar.
+    const watchdog = setTimeout(() => {
+      if (!live || cancelled.current) return;
+      toast.info(t("No match found — try AI bot instead."));
+      navigate("/app/battle", { replace: true });
+    }, 15_000);
+
     (async () => {
-      const session = await startBattleSession({
-        subject,
-        mode,
-        opponentId: state.opponentId,
-        opponentName: state.opponentName,
-      });
-      // Simulate matchmaking delay before transitioning to the battle.
+      let session;
+      try {
+        session = await startBattleSession({
+          subject,
+          // If matchmaking can't pair humans (mode === "ranked" / "friend"),
+          // fall back to the Default-level AI so the flow doesn't stall.
+          mode: mode === "ranked" || mode === "friend" ? "ai" : mode,
+          opponentId: state.opponentId,
+          opponentName: state.opponentName,
+        });
+      } catch (err) {
+        if (!live || cancelled.current) return;
+        clearTimeout(watchdog);
+        const message = err instanceof Error ? err.message : "";
+        toast.error(
+          t("Could not start battle.") + (message ? ` (${message})` : ""),
+        );
+        navigate("/app/battle", { replace: true });
+        return;
+      }
+      // Brief delay so the matchmaking animation has a moment to play.
       setTimeout(() => {
         if (!live || cancelled.current) return;
+        clearTimeout(watchdog);
         navigate("/app/battle/active", {
           replace: true,
           state: { sessionId: session.id, subject, mode },
         });
-      }, 3200);
+      }, 2000);
     })();
 
     return () => {
       live = false;
       cancelled.current = true;
       clearInterval(tick);
+      clearTimeout(watchdog);
     };
-  }, [subject, mode, state.opponentId, state.opponentName, navigate]);
+  }, [subject, mode, state.opponentId, state.opponentName, navigate, t]);
 
   const handleCancel = () => {
     cancelled.current = true;

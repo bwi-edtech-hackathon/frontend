@@ -4,17 +4,20 @@ import { toast } from "sonner";
 import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Btn, Card, MathPill, Pill, Progress } from "@/components/ui/Primitives";
+import { Btn, Card, Pill, Progress } from "@/components/ui/Primitives";
 import { CoachMessage } from "@/components/ui/CoachMessage";
 import { useIsAtMostTablet, useIsMobile } from "@/hooks/useMediaQuery";
 import {
   createChatSession,
   endChatSession,
   getChatHistory,
+  getFormulaSheet,
   listChatSessions,
   markUnderstood,
   streamChatMessage,
   type ChatSessionSummary,
+  type FormulaGroup,
+  type SubjectCode,
 } from "@/lib/api";
 
 type LocalMessage =
@@ -39,10 +42,27 @@ export default function ChatLesson() {
   const [sending, setSending] = useState(false);
   const [coachThinking, setCoachThinking] = useState(true);
   const [messages, setMessages] = useState<LocalMessage[]>(() =>
-    navState.chatId ? [] : seedMessages(t),
+    navState.chatId ? [] : welcomeMessages(t),
   );
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const streamAbortRef = useRef<(() => void) | null>(null);
+  const activeSession = sessions.find((s) => s.id === activeId);
+  const activeSubject = (activeSession?.subject as SubjectCode | undefined) ?? "MATH";
+  const [referenceGroups, setReferenceGroups] = useState<FormulaGroup[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    getFormulaSheet(activeSubject)
+      .then((groups) => {
+        if (live) setReferenceGroups(groups);
+      })
+      .catch(() => {
+        if (live) setReferenceGroups([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [activeSubject]);
 
   useEffect(() => {
     return () => {
@@ -169,10 +189,10 @@ export default function ChatLesson() {
   };
 
   const handleNewSession = async () => {
-    const s = await createChatSession();
+    const s = await createChatSession(t("New Chat"));
     const summary: ChatSessionSummary = {
       id: s.id,
-      topic: s.topic,
+      topic: s.topic || t("New Chat"),
       preview: t("Just started"),
       when: "Now",
       status: "active",
@@ -372,7 +392,7 @@ export default function ChatLesson() {
                 letterSpacing: "0.04em",
               }}
             >
-              {t("Topic")} · {t("Algebra")}
+              {t("Topic")}
             </div>
             <div
               style={{
@@ -381,7 +401,9 @@ export default function ChatLesson() {
                 letterSpacing: "-0.015em",
               }}
             >
-              {t("Quadratic equations")}
+              {activeSession?.topic
+                ? t(activeSession.topic)
+                : t("New Chat")}
             </div>
           </div>
           {!isMobile && (
@@ -632,43 +654,61 @@ export default function ChatLesson() {
             marginBottom: 12,
           }}
         >
-          {t("Related formulas")}
+          {referenceGroups.some((g) => g.kind === "reference")
+            ? t("Sources")
+            : t("Related formulas")}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[
-            {
-              name: t("Quadratic formula"),
-              eq: "x = (−b ± √(b² − 4ac)) / 2a",
-            },
-            { name: t("Discriminant"), eq: "D = b² − 4ac" },
-            {
-              name: t("Vieta's theorem"),
-              eq: "x₁ + x₂ = −b/a · x₁·x₂ = c/a",
-            },
-          ].map((f, i) => (
-            <Card key={i} pal={pal} pad={12}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: pal.muted,
-                  marginBottom: 4,
-                  letterSpacing: "0.02em",
-                }}
-              >
-                {f.name}
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontFamily: '"Newsreader", serif',
-                  fontStyle: "italic",
-                }}
-              >
-                {f.eq}
-              </div>
-            </Card>
-          ))}
+          {referenceGroups.length === 0 && (
+            <div style={{ fontSize: 12, color: pal.muted }}>
+              {t("No references for this subject yet.")}
+            </div>
+          )}
+          {referenceGroups.flatMap((g) =>
+            g.items.map((f, i) => {
+              const isLink = g.kind === "reference" && !!f.href;
+              const card = (
+                <Card pal={pal} pad={12}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: pal.muted,
+                      marginBottom: 4,
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    {f.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontFamily: isLink ? "inherit" : '"Newsreader", serif',
+                      fontStyle: isLink ? "normal" : "italic",
+                      color: isLink ? pal.primary : pal.text,
+                      textDecoration: isLink ? "underline" : "none",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {f.eq}
+                  </div>
+                </Card>
+              );
+              return isLink ? (
+                <a
+                  key={`${g.title}-${i}`}
+                  href={f.href ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  {card}
+                </a>
+              ) : (
+                <div key={`${g.title}-${i}`}>{card}</div>
+              );
+            }),
+          )}
         </div>
 
         <div
@@ -769,39 +809,14 @@ export default function ChatLesson() {
   );
 }
 
-function seedMessages(t: (k: string) => string): LocalMessage[] {
+function welcomeMessages(t: (k: string) => string): LocalMessage[] {
   return [
     {
-      id: "seed-c-1",
+      id: "welcome-c-1",
       role: "coach",
-      nodes: (
-        <>
-          {t("I see you struggled with this on your checkpoint:")}
-          <MathPill pal={pal} block>
-            x² − 5x + 6 = 0
-          </MathPill>
-          {t("Before we solve it, can you tell me what")}{" "}
-          <em>{t("type")}</em> {t("of equation this is?")}
-        </>
+      nodes: t(
+        "Hi! What subject and topic should we work on today? Tell me what you'd like to learn.",
       ),
     },
-    { id: "seed-u-1", role: "user", text: t("Quadratic?") },
-    {
-      id: "seed-c-2",
-      role: "coach",
-      nodes: (
-        <>
-          {t("Right. The general form is")}
-          <MathPill pal={pal} block>
-            ax² + bx + c = 0
-          </MathPill>
-          {t("In your equation, what are")}{" "}
-          <MathPill pal={pal}>a</MathPill>,{" "}
-          <MathPill pal={pal}>b</MathPill> {t("and")}{" "}
-          <MathPill pal={pal}>c</MathPill>?
-        </>
-      ),
-    },
-    { id: "seed-u-2", role: "user", text: "a = 1, b = −5, c = 6" },
   ];
 }

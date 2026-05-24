@@ -97,8 +97,15 @@ export type ExamHistoryItem = {
   submittedAt: number | null;
 };
 
-export type FormulaItem = { name: string; eq: string };
-export type FormulaGroup = { title: string; items: FormulaItem[] };
+export type FormulaItem = { name: string; eq: string; href?: string | null };
+export type FormulaGroup = {
+  title: string;
+  items: FormulaItem[];
+  // "formula" (default) renders as a LaTeX-style pill; "reference" renders
+  // as an external link — used for humanities subjects where formulas aren't
+  // meaningful.
+  kind?: "formula" | "reference";
+};
 
 export type BattleTier = "Bronze" | "Silver" | "Gold" | "Plat";
 
@@ -156,6 +163,8 @@ export type ChatSessionSummary = {
   preview: string;
   when: string;
   status: "active" | "mastered" | "struggling" | "in_progress";
+  // Subject code so the chat sidebar can show the right reference panel.
+  subject?: SubjectCode | string;
 };
 
 export type ChatMessage = {
@@ -333,6 +342,112 @@ export async function regenerateRoadmap(
     /* roadmap module is optional in demo */
   }
   return { roadmapId: `roadmap-${tag}` };
+}
+
+export type RoadmapMilestone = {
+  topicId: string;
+  topicSlug: string;
+  topicNameEn: string;
+  topicNameUz: string;
+  order: number;
+  status: "mastered" | "in_progress" | "active" | "locked";
+  masteryPct: number;
+  estMinutes: number;
+  weekBucket: number;
+  lane: number;
+  weight: number;
+};
+
+export type Roadmap = {
+  id: string;
+  subjectId: string;
+  subjectSlug: string;
+  generatedAt: string;
+  weeksTotal: number;
+  onTrack: boolean;
+  milestones: RoadmapMilestone[];
+};
+
+type RoadmapResponseRaw = {
+  id: string;
+  subject_id: string;
+  subject_slug: string;
+  user_id: string;
+  generated_at: string;
+  weeks_total: number;
+  on_track: boolean;
+  milestones: {
+    topic_id: string;
+    topic_slug: string;
+    topic_name_uz: string;
+    topic_name_en: string;
+    order: number;
+    status: string;
+    mastery_pct: number;
+    est_minutes: number;
+    week_bucket: number;
+    lane?: number;
+    weight: number;
+  }[];
+};
+
+function normalizeRoadmap(raw: RoadmapResponseRaw): Roadmap {
+  return {
+    id: raw.id,
+    subjectId: raw.subject_id,
+    subjectSlug: raw.subject_slug,
+    generatedAt: raw.generated_at,
+    weeksTotal: raw.weeks_total,
+    onTrack: raw.on_track,
+    milestones: (raw.milestones ?? []).map((m) => ({
+      topicId: m.topic_id,
+      topicSlug: m.topic_slug,
+      topicNameEn: m.topic_name_en,
+      topicNameUz: m.topic_name_uz,
+      order: m.order,
+      status: m.status as RoadmapMilestone["status"],
+      masteryPct: Number(m.mastery_pct),
+      estMinutes: m.est_minutes,
+      weekBucket: m.week_bucket,
+      lane: typeof m.lane === "number" ? m.lane : 0,
+      weight: Number(m.weight),
+    })),
+  };
+}
+
+/** Fetch the persisted roadmap for a subject. The backend lazily generates
+ * the plan on first request, so subjects with no prior roadmap row still
+ * return a populated milestone list. */
+export async function getRoadmap(subject: SubjectCode): Promise<Roadmap> {
+  const slug = subjectSlug(subject);
+  if (USE_MOCK) return mockRoadmap(subject);
+  const res = await http.get<RoadmapResponseRaw>(`/api/v1/roadmap/${slug}`);
+  return normalizeRoadmap(res.data);
+}
+
+function mockRoadmap(subject: SubjectCode): Roadmap {
+  const seed = ["Linear equations", "Quadratic equations", "Logarithms", "Functions", "Trigonometry", "Sequences & series"];
+  return {
+    id: `mock-${subject}`,
+    subjectId: `mock-${subject}`,
+    subjectSlug: subjectSlug(subject),
+    generatedAt: new Date().toISOString(),
+    weeksTotal: 6,
+    onTrack: true,
+    milestones: seed.map((name, i) => ({
+      topicId: `mock-t-${i}`,
+      topicSlug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      topicNameEn: name,
+      topicNameUz: name,
+      order: i,
+      status: i === 0 ? "mastered" : i === 1 ? "active" : "locked",
+      masteryPct: i === 0 ? 90 : i === 1 ? 60 : 0,
+      estMinutes: 60,
+      weekBucket: Math.floor(i / 2) + 1,
+      lane: i % 3,
+      weight: 0.8,
+    })),
+  };
 }
 
 // ─────────────────────────── Auth ───────────────────────────

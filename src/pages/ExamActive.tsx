@@ -5,7 +5,6 @@ import { palette as pal } from "@/lib/palette";
 import { useT } from "@/lib/i18n";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Btn, Card, Logo, MathPill, Pill } from "@/components/ui/Primitives";
-import { Calculator } from "@/components/exam/Calculator";
 import { FormulaSheet } from "@/components/exam/FormulaSheet";
 import { ScratchPaper } from "@/components/exam/ScratchPaper";
 import {
@@ -36,7 +35,7 @@ import {
   labelForSubject,
 } from "@/lib/examMode";
 
-type Tool = "calc" | "formula" | "scratch";
+type Tool = "formula" | "scratch";
 
 type LocationState = { sessionId?: string; subject?: SubjectCode; mode?: "quick" | "app" };
 
@@ -49,7 +48,6 @@ export default function ExamActive() {
   const [session, setSession] = useState<ExamSession | null>(null);
   const [exam, setExam] = useState<ExamState | null>(() => readExam());
   const [tools, setTools] = useState<Record<Tool, boolean>>({
-    calc: false,
     formula: false,
     scratch: false,
   });
@@ -1115,7 +1113,6 @@ export default function ExamActive() {
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {(
                 [
-                  { key: "calc" as const, icon: "bolt" as IconName, l: t("Calculator") },
                   { key: "formula" as const, icon: "book" as IconName, l: t("Formula sheet") },
                   { key: "scratch" as const, icon: "image" as IconName, l: t("Scratch paper") },
                 ]
@@ -1197,8 +1194,7 @@ export default function ExamActive() {
       )}
 
       {/* Floating tool panels */}
-      {tools.calc && <Calculator onClose={() => toggleTool("calc")} />}
-      {tools.formula && <FormulaSheet onClose={() => toggleTool("formula")} />}
+      {tools.formula && <FormulaSheet onClose={() => toggleTool("formula")} subject={subject} />}
       {tools.scratch && <ScratchPaper onClose={() => toggleTool("scratch")} />}
     </div>
   );

@@ -113,38 +113,67 @@ export function FormulaSheet({
               {g.title}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {g.items.map((f) => (
-                <div
-                  key={f.name}
-                  style={{
-                    padding: "8px 10px",
-                    background: pal.surfaceAlt,
-                    border: `1px solid ${pal.line}`,
-                    borderRadius: 8,
-                  }}
-                >
-                  <div
+              {g.items.map((f) => {
+                const isLink = g.kind === "reference" && !!f.href;
+                const inner = (
+                  <>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: pal.muted,
+                        fontWeight: 600,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {f.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontFamily: isLink
+                          ? "inherit"
+                          : '"Newsreader", serif',
+                        fontStyle: isLink ? "normal" : "italic",
+                        color: isLink ? pal.primary : pal.text,
+                        textDecoration: isLink ? "underline" : "none",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {f.eq}
+                    </div>
+                  </>
+                );
+                return isLink ? (
+                  <a
+                    key={f.name}
+                    href={f.href ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
-                      fontSize: 11,
-                      color: pal.muted,
-                      fontWeight: 600,
-                      marginBottom: 2,
+                      display: "block",
+                      padding: "8px 10px",
+                      background: pal.surfaceAlt,
+                      border: `1px solid ${pal.line}`,
+                      borderRadius: 8,
+                      textDecoration: "none",
                     }}
                   >
-                    {f.name}
-                  </div>
+                    {inner}
+                  </a>
+                ) : (
                   <div
+                    key={f.name}
                     style={{
-                      fontSize: 13,
-                      fontFamily: '"Newsreader", serif',
-                      fontStyle: "italic",
-                      color: pal.text,
+                      padding: "8px 10px",
+                      background: pal.surfaceAlt,
+                      border: `1px solid ${pal.line}`,
+                      borderRadius: 8,
                     }}
                   >
-                    {f.eq}
+                    {inner}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}

@@ -286,7 +286,7 @@ export default function ExamLanding() {
                     icon: "sparkle",
                     title: t("Tools"),
                     body: t(
-                      "Calculator, formula sheet, and scratch paper available from the right toolbar at any time.",
+                      "Formula sheet and scratch paper available from the right toolbar at any time.",
                     ),
                   },
                   {

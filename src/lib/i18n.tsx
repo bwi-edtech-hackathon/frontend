@@ -443,10 +443,10 @@ const STRINGS: Dict = {
       uz: "A bo'limini topshirgandan keyin unga qaytib bo'lmaydi. Darhol B bo'lim ochiladi.",
     },
   Tools: { ru: "Инструменты", uz: "Asboblar" },
-  "Calculator, formula sheet, and scratch paper available from the right toolbar at any time.":
+  "Formula sheet and scratch paper available from the right toolbar at any time.":
     {
-      ru: "Калькулятор, формулы и черновик доступны в правой панели в любое время.",
-      uz: "Kalkulator, formulalar va qoralama o'ng paneldan istalgan vaqtda mavjud.",
+      ru: "Формулы и черновик доступны в правой панели в любое время.",
+      uz: "Formulalar va qoralama o'ng paneldan istalgan vaqtda mavjud.",
     },
   "Auto-save": { ru: "Автосохранение", uz: "Avtosaqlash" },
   "Every answer and flag is saved as you go. Reload safely if your connection drops.":
