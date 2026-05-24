@@ -11,7 +11,14 @@ const USE_MOCK = (import.meta.env.VITE_USE_MOCK_DATA ?? "false") === "true";
 export const http: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    // Bypass ngrok-free.dev's browser interstitial when the backend is tunneled
+    // through ngrok — without this header ngrok returns its warning HTML page
+    // (200, no CORS) instead of proxying the request, which surfaces as a
+    // confusing "not allowed by Access-Control-Allow-Origin" error.
+    "ngrok-skip-browser-warning": "true",
+  },
 });
 
 /** Absolute backend URL (for EventSource / WebSocket which can't use axios). */
